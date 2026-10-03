@@ -18,6 +18,10 @@ https://github.com/ydgros/IM4U/releases
 4.26.2 https://github.com/yotaken/IM4U  
 4.26.2 https://github.com/TheRoyalDudeness/IM4U    
 5.1(不可用) https://github.com/axilesoft/IM-for-UE5  
+5.1-5.2(可用) https://github.com/NaN-Name-bilbil/IVP5U
+5.8(可用) https://github.com/rintrint/IVP5U
+5.8(可用) https://github.com/AMAP-N/ue5-mmd-toolkit
+5.8(可用) https://github.com/treasureGrove/MMDUETools
 
 This software is released under the MIT License
 
