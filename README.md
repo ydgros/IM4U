@@ -77,7 +77,6 @@ UE各版本对应的Visual Studio，可通过UEBuildWindows.cs进行查看
 # 关联软件
 
 ## 软件
-
 MikuMikuDance https://sites.google.com/view/vpvp/  
 PmxEditor https://kkhk22.seesaa.net/category/14045227-1.html  
 MME https://w.atwiki.jp/vpvpwiki/pages/219.html  
@@ -88,20 +87,26 @@ MikuMikuMoving https://sites.google.com/site/mikumikumoving/
 ## 插件 
 MMDBridge https://mmdbridge.vec4d.xyz/  
 MMD4Mecanim http://stereoarts.jp/  
-blender_mmd_tools https://github.com/UuuNyaa/blender_mmd_tools  
+blender_mmd_tools https://github.com/MMD-Blender/blender_mmd_tools
 MMD4Maya https://github.com/gameboy12615/MMD4Maya  
 C4D_MMD_Tool https://github.com/MikuMikuDance-tool-for-Cinema-4D-team/C4D_MMD_Tool  
 
 # NPR
 
 ## blender
-
-https://github.com/dillongoostudios/goo-engine  
+https://github.com/blender/blender
+https://github.com/dillongoostudios/goo-engine
+https://github.com/NaMgAl-Studio/goo-engine-5.2.0
+NprPort https://github.com/bb-yi/blender  
 https://github.com/Aoikaze0/Blender_goo_build_windows_x64_vc16_Release  
 https://github.com/festivize/Blender-miHoYo-Shaders  
 https://github.com/bnpr/Malt  
 https://github.com/yuki-koyama/btoon  
 https://github.com/kanzwataru/EEVEEToon  
+https://github.com/MMD-Blender/blender_mmd_tools
+https://github.com/rintrint/blender_mmd_tools
+https://github.com/ulyssas/mmd_tools_addon_4.1
+
 ## unity
 
 ### 默认3D管线
@@ -117,20 +122,21 @@ https://github.com/JasonMa0012/JTRP
 
 ## unreal
 
-### 导入插件
-
-https://github.com/anasrar/Blender-UE4-Workspace  
-
 ### 后处理
-
 https://github.com/alwei  
 https://github.com/nanpc/UE4-Cartoon-Shader  
 https://github.com/SirCodalot/ShadersExample  
 https://github.com/shop-0761/tToon  
 
 ### 插件
-
+https://github.com/anasrar/Blender-UE4-Workspace  
 https://github.com/pafuhana1213/KawaiiPhysics  
+https://github.com/SPARK-inc/SPCRJointDynamicsUE4
+https://github.com/ruyo/VRM4U
+https://github.com/herobbq/UE4_SmoothNormalTool
+https://github.com/microsoft/vc-ue-extensions
+https://github.com/EsotericSoftware/spine-runtimes
+https://github.com/sideeffects/HoudiniEngineForUnreal
 
 ### 通过插件修改着色器
 https://github.com/ruyo/VRM4U  
@@ -138,3 +144,29 @@ https://ruyo.github.io/VRM4U/
 https://github.com/Eragon-Brisingr/ToonShader  
 https://github.com/Temaran/UE4ShaderPluginDemo  
 
+### 修改渲染管线
+只修改引擎shader https://github.com/envieous/UnrealEngine-SelShader
+https://github.com/EscapeEntertainmentTeam/IsekaiFramework
+https://github.com/JasonMa0012/MooaToon
+
+### 卡通材质
+https://www.fab.com/listings/5506e030-5fe4-406d-adaa-0f2201ef3b0a?lang=en
+
+## ffmpeg
+https://github.com/FFmpeg/FFmpeg
+https://github.com/BtbN/FFmpeg-Builds
+https://github.com/GyanD/codexffmpeg
+
+## mingw(gcc)
+https://github.com/brechtsanders/winlibs_mingw
+https://github.com/skeeto/w64devkit
+https://github.com/niXman/mingw-builds-binaries
+
+## llvm(clang)
+https://github.com/llvm/llvm-project
+https://github.com/mstorsjo/llvm-mingw
+
+## 7z
+https://github.com/ip7z/7zip
+https://github.com/mcmilk/7-Zip-zstd
+https://github.com/peazip/PeaZip
