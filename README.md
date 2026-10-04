@@ -1,27 +1,28 @@
 
 # Download（下载）
 
-https://github.com/ydgros/IM4U/releases  
+https://github.com/ydgros/IM4U  
 
 # 来源
-
-之前版本 https://github.com/bm9/UnrealEngine_IM4UPlugin   
-4.10.4 、4.16.1 https://github.com/bm9/IM4U  
-4.20.1 https://github.com/goopymoon/UnrealEngine_IM4UPlugin/  
-4.24.3~5.03 https://github.com/tekifuta/IM4U  
-
-## 克隆存储库
-
+## 存储库
+初始版本 https://github.com/bm9/IM4U  
+4.10.4-4.16.1 https://github.com/bm9/UnrealEngine_IM4UPlugin   
+4.20.1 https://github.com/goopymoon/UnrealEngine_IM4UPlugin  
 4.24.3 https://github.com/yjlian415/IM4U  
 4.25.1 https://github.com/lionelqi/IM4U  
 4.25.1 https://github.com/50c1a1-deadc0de/IM4U   
 4.26.2 https://github.com/yotaken/IM4U  
-4.26.2 https://github.com/TheRoyalDudeness/IM4U    
+4.26.2 https://github.com/TheRoyalDudeness/IM4U  
+4.24.3-5.03 https://github.com/tekifuta/IM4U  
 5.1(不可用) https://github.com/axilesoft/IM-for-UE5  
 5.1-5.2(可用) https://github.com/NaN-Name-bilbil/IVP5U  
 5.8(可用) https://github.com/rintrint/IVP5U  
 5.8(可用) https://github.com/AMAP-N/ue5-mmd-toolkit  
+5.8(可用，基于ue5-mmd-toolkit) https://github.com/hatoghx/AMAP5  
 5.8(可用) https://github.com/treasureGrove/MMDUETools  
+5.8(可用) https://github.com/JDui/MMD2Unreal  
+
+https://github.com/dskjal/OpenMMD  
 
 This software is released under the MIT License
 
@@ -31,68 +32,25 @@ This software is released under the MIT License
 需要重新编译的版本
 4.20.1、4.25.1、4.26.2、4.27.2
 
-# 使用方法
-
-## 直接使用
-
-把IM4U复制到项目Plugins文件夹中，没有Plugins文件夹就新建一个
-文件夹位置\\Plugins
-
-或把IM4U复制到引擎Plugins文件夹中
-引擎安装目录\\UE_5.0\\Engine\\Plugins
-
-## 重新编译插件
-
-新建一个C++项目
-
-![image](public/image/2023-01-14_11-13-47.png)  
-
-复制IM4U到项目Plugins文件夹中，更新Visual Studio文件
-
-![image](public/image/2023-01-14_11-16-35.png)  
-
-打开.sln文件，直接进行编译，完成后自动打开项目 
-
-![image](public/image/2023-01-14_11-18-37.png)
-
-UE各版本对应的Visual Studio，可通过UEBuildWindows.cs进行查看
-安装目录\\UE_4.21\\Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Windows
-
-## 使用
-
-先导入模型  
-
-![image](public/image/2023-01-14_11-34-04.png)
-
-使用MikuMikuMoving烘焙物理  
-
-![image](public/image/2023-01-14_11-36-01.png)
-![image](public/image/2023-01-14_11-36-32.png)
-![image](public/image/2023-01-14_11-37-08.png)
-
-导入动作 
-
-![image](public/image/2023-01-14_11-37-36.png)
-
 # 关联软件
 
 ## 软件
-MikuMikuDance https://sites.google.com/view/vpvp/  
+MikuMikuDance https://sites.google.com/view/vpvp  
 PmxEditor https://kkhk22.seesaa.net/category/14045227-1.html  
 MME https://w.atwiki.jp/vpvpwiki/pages/219.html  
 ray-mmd https://github.com/ray-cast/ray-mmd 
 
 B碗 https://bowlroll.net  
 
-MikuMikuMoving https://sites.google.com/site/mikumikumoving/  
-NexGiMa https://www.nekosmb.com/nexgima/  
+MikuMikuMoving https://sites.google.com/site/mikumikumoving  
+NexGiMa https://www.nekosmb.com/nexgima  
 NexGiMa https://sites.google.com/view/nexgima/Home  
-MikuMikuPlus https://www.nekosmb.com/mikumikuplus/  
+MikuMikuPlus https://www.nekosmb.com/mikumikuplus  
 
 ## 插件 
-MMDBridge https://mmdbridge.vec4d.xyz/  
-MMD4Mecanim http://stereoarts.jp/  
-blender_mmd_tools https://github.com/MMD-Blender/blender_mmd_tools
+MMDBridge https://mmdbridge.vec4d.xyz  
+MMD4Mecanim http://stereoarts.jp  
+blender_mmd_tools https://github.com/MMD-Blender/blender_mmd_tools  
 MMD4Maya https://github.com/gameboy12615/MMD4Maya  
 C4D_MMD_Tool https://github.com/MikuMikuDance-tool-for-Cinema-4D-team/C4D_MMD_Tool  
 
@@ -144,8 +102,8 @@ https://github.com/EsotericSoftware/spine-runtimes
 https://github.com/sideeffects/HoudiniEngineForUnreal  
 
 ### 通过插件修改着色器
+https://ruyo.github.io/VRM4U  
 https://github.com/ruyo/VRM4U  
-https://ruyo.github.io/VRM4U/  
 https://github.com/Eragon-Brisingr/ToonShader  
 https://github.com/Temaran/UE4ShaderPluginDemo  
 
@@ -175,3 +133,46 @@ https://github.com/mstorsjo/llvm-mingw
 https://github.com/ip7z/7zip  
 https://github.com/mcmilk/7-Zip-zstd  
 https://github.com/peazip/PeaZip  
+
+# 使用方法
+
+## 直接使用
+
+把IM4U复制到项目Plugins文件夹中，没有Plugins文件夹就新建一个
+文件夹位置\\Plugins
+
+或把IM4U复制到引擎Plugins文件夹中
+引擎安装目录\\UE_5.0\\Engine\\Plugins
+
+## 重新编译插件
+
+新建一个C++项目
+
+![image](public/image/2023-01-14_11-13-47.png)  
+
+复制IM4U到项目Plugins文件夹中，更新Visual Studio文件
+
+![image](public/image/2023-01-14_11-16-35.png)  
+
+打开.sln文件，直接进行编译，完成后自动打开项目 
+
+![image](public/image/2023-01-14_11-18-37.png)
+
+UE各版本对应的Visual Studio，可通过UEBuildWindows.cs进行查看
+安装目录\\UE_4.21\\Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Windows
+
+## 使用
+
+先导入模型  
+
+![image](public/image/2023-01-14_11-34-04.png)
+
+使用MikuMikuMoving烘焙物理  
+
+![image](public/image/2023-01-14_11-36-01.png)
+![image](public/image/2023-01-14_11-36-32.png)
+![image](public/image/2023-01-14_11-37-08.png)
+
+导入动作 
+
+![image](public/image/2023-01-14_11-37-36.png)
