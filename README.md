@@ -15,12 +15,12 @@ https://github.com/ydgros/IM4U
 4.26.2 https://github.com/TheRoyalDudeness/IM4U  
 4.24.3-5.03 https://github.com/tekifuta/IM4U  
 5.1(不可用) https://github.com/axilesoft/IM-for-UE5  
-5.1-5.2(可用) https://github.com/NaN-Name-bilbil/IVP5U  
+5.1-5.2(可用，推荐) https://github.com/NaN-Name-bilbil/IVP5U  
 5.8(可用) https://github.com/rintrint/IVP5U  
-5.8(可用) https://github.com/AMAP-N/ue5-mmd-toolkit  
+5.8(可用，推荐，需安装VRM4U，没源代码) https://github.com/AMAP-N/ue5-mmd-toolkit  
 5.8(可用，基于ue5-mmd-toolkit) https://github.com/hatoghx/AMAP5  
-5.8(可用) https://github.com/JDui/MMD2Unreal  
-5.8(可用) https://github.com/treasureGrove/MMDUETools  
+5.8(可用，推荐，需安装VRM4U和KawaiiPhysics，没源代码) https://github.com/JDui/MMD2Unreal  
+5.8(报错，不推荐) https://github.com/treasureGrove/MMDUETools  
 
 https://github.com/dskjal/OpenMMD  
 
