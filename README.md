@@ -19,8 +19,8 @@ https://github.com/ydgros/IM4U
 5.8(可用) https://github.com/rintrint/IVP5U  
 5.8(可用) https://github.com/AMAP-N/ue5-mmd-toolkit  
 5.8(可用，基于ue5-mmd-toolkit) https://github.com/hatoghx/AMAP5  
-5.8(可用) https://github.com/treasureGrove/MMDUETools  
 5.8(可用) https://github.com/JDui/MMD2Unreal  
+5.8(可用) https://github.com/treasureGrove/MMDUETools  
 
 https://github.com/dskjal/OpenMMD  
 
@@ -92,14 +92,16 @@ https://github.com/SirCodalot/ShadersExample
 https://github.com/shop-0761/tToon  
 
 ### 插件
-https://github.com/anasrar/Blender-UE4-Workspace  
+https://ruyo.github.io/VRM4U  
+https://github.com/ruyo/VRM4U  
+https://github.com/ruyo/UnrealEngine_VRM4UPlugin  
 https://github.com/pafuhana1213/KawaiiPhysics  
 https://github.com/SPARK-inc/SPCRJointDynamicsUE4  
-https://github.com/ruyo/VRM4U  
 https://github.com/herobbq/UE4_SmoothNormalTool  
 https://github.com/microsoft/vc-ue-extensions  
 https://github.com/EsotericSoftware/spine-runtimes  
 https://github.com/sideeffects/HoudiniEngineForUnreal  
+https://github.com/anasrar/Blender-UE4-Workspace  
 
 ### 通过插件修改着色器
 https://ruyo.github.io/VRM4U  
@@ -110,7 +112,8 @@ https://github.com/Temaran/UE4ShaderPluginDemo
 ### 修改渲染管线
 只修改引擎shader https://github.com/envieous/UnrealEngine-SelShader  
 https://github.com/EscapeEntertainmentTeam/IsekaiFramework  
-https://github.com/JasonMa0012/MooaToon
+https://github.com/JasonMa0012/MooaToon  
+https://github.com/NvRTX/UnrealEngine  
 
 ### 卡通材质
 https://www.fab.com/listings/5506e030-5fe4-406d-adaa-0f2201ef3b0a?lang=en
