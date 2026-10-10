@@ -95,7 +95,7 @@ class UPmxImportUI : public UObject
 		uint32 bCreateMaterialInstMode : 1;
 
 	/* create Unreal materials of Unlit Type */
-		UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "If CreateMaterialInstMode enabled, effective. Create Mat Shading Model is Unlit."))
+		//UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "If CreateMaterialInstMode enabled, effective. Create Mat Shading Model is Unlit."))
 		uint32 bUnlitMaterials : 1;
 
 	/* Use VRM4U's MToon Unlit material templates for imported PMX materials. */
