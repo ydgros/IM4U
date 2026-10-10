@@ -429,8 +429,8 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				PmxMeshInfo->materialList[k],
 				ImportUI->bCreateMaterialInstMode,
 				ImportUI->bUnlitMaterials,
-				ImportUI->bUseVRM4UMaterials,
-				ImportUI->bUseVRM4USSSProfile,
+				ImportUI->bMToonUnlitVRM4U,
+				ImportUI->bSubsurfaceProfileVRM4U,
 				Materials,
 				textureAssetList);
 			{

@@ -864,8 +864,8 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	MMD4UE4::PMX_MATERIAL& PmxMaterial,
 	bool bCreateMaterialInstMode,
 	bool bMaterialUnlit,
-	bool bUseVRM4UMaterials,
-	bool bUseVRM4USSSProfile,
+	bool bMToonUnlitVRM4U,
+	bool bSubsurfaceProfileVRM4U,
 	TArray<UMaterialInterface*>& OutMaterials,
 	TArray<UTexture*>& textureAssetList
 )
@@ -878,12 +878,12 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	//删除禁止字符（如果模型名称中包含禁止字符时的故障保护）)
 	ParentObjName = ObjectTools::SanitizeObjectName(ParentObjName);
 
-	if (bUseVRM4UMaterials || bUseVRM4USSSProfile)
+	if (bMToonUnlitVRM4U || bSubsurfaceProfileVRM4U)
 	{
 		const bool bTranslucent = PmxMaterial.Diffuse[3] < 1.0f;
 		const bool bTwoSided = PmxMaterial.CullingOff != 0;
 		FString TemplateName;
-		if (bUseVRM4USSSProfile)
+		if (bSubsurfaceProfileVRM4U)
 		{
 			TemplateName = TEXT("MI_VrmMToonOptSSSProfile");
 		}
@@ -921,7 +921,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 			UMaterialInstanceConstant* MaterialInstance = Cast<UMaterialInstanceConstant>(
 				CreateMaterialInst(
 					ParentObjName,
-					(bUseVRM4USSSProfile ? TEXT("VRM4U_SSS_") : TEXT("VRM4U_")) + MaterialFullName,
+					(bSubsurfaceProfileVRM4U ? TEXT("VRM4U_SSS_") : TEXT("VRM4U_")) + MaterialFullName,
 					ParentMaterial,
 					&bMICCreated));
 			if (MaterialInstance)
@@ -950,7 +950,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("mtoon_Color"), DiffuseColor);
 				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("gltf_basecolor"), DiffuseColor);
 				bool bProfileReady = true;
-				if (bUseVRM4USSSProfile)
+				if (bSubsurfaceProfileVRM4U)
 				{
 					UPackage* MaterialPackage = MaterialInstance->GetOutermost();
 					const FName ProfileName(*FString::Printf(TEXT("SP_VRM4U_%s"), *ParentObjName));

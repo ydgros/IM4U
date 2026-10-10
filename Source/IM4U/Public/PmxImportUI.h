@@ -100,11 +100,11 @@ class UPmxImportUI : public UObject
 
 	/* Use VRM4U's MToon Unlit material templates for imported PMX materials. */
 		UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "Requires VRM4U. Uses VRM4U MToon Unlit material templates instead of IM4U materials."))
-		uint32 bUseVRM4UMaterials : 1;
+		uint32 bMToonUnlitVRM4U : 1;
 
 	/* Use VRM4U's MToon Subsurface Profile material templates for imported PMX materials. */
 		UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "Requires VRM4U. Uses VRM4U MToon Subsurface Profile materials and creates a profile asset for the imported model. Overrides Use VRM4U Materials."))
-		uint32 bUseVRM4USSSProfile : 1;
+		uint32 bSubsurfaceProfileVRM4U : 1;
 
 	/* Import data used when importing static meshes */
 		//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "StaticMesh"))
