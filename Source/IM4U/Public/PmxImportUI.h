@@ -98,6 +98,10 @@ class UPmxImportUI : public UObject
 		UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "If CreateMaterialInstMode enabled, effective. Create Mat Shading Model is Unlit."))
 		uint32 bUnlitMaterials : 1;
 
+	/* Use VRM4U's MToon Unlit material templates for imported PMX materials. */
+		UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict = "true", ToolTip = "Requires VRM4U. Uses VRM4U MToon Unlit material templates instead of IM4U materials."))
+		uint32 bUseVRM4UMaterials : 1;
+
 	/* Import data used when importing static meshes */
 		//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "StaticMesh"))
 		UPROPERTY()

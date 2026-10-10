@@ -863,6 +863,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	MMD4UE4::PMX_MATERIAL& PmxMaterial,
 	bool bCreateMaterialInstMode,
 	bool bMaterialUnlit,
+	bool bUseVRM4UMaterials,
 	TArray<UMaterialInterface*>& OutMaterials,
 	TArray<UTexture*>& textureAssetList
 )
@@ -874,6 +875,86 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 
 	//删除禁止字符（如果模型名称中包含禁止字符时的故障保护）)
 	ParentObjName = ObjectTools::SanitizeObjectName(ParentObjName);
+
+	if (bUseVRM4UMaterials)
+	{
+		const bool bTranslucent = PmxMaterial.Diffuse[3] < 1.0f;
+		const bool bTwoSided = PmxMaterial.CullingOff != 0;
+		FString TemplateName = TEXT("MI_VrmMToonOptUnlit");
+		if (bTranslucent)
+		{
+			TemplateName += TEXT("Translucent");
+		}
+		else
+		{
+			TemplateName += TEXT("Opaque");
+		}
+		if (bTwoSided)
+		{
+			TemplateName += TEXT("TwoSided");
+		}
+
+		const FString TemplatePath = FString::Printf(
+			TEXT("/VRM4U/MaterialUtil/UE5/Material/%s.%s"),
+			*TemplateName,
+			*TemplateName);
+		UMaterialInterface* ParentMaterial = LoadObject<UMaterialInterface>(nullptr, *TemplatePath);
+		if (!ParentMaterial)
+		{
+			UE_LOG(LogCategoryPMXMaterialImport, Error,
+				TEXT("VRM4U material template is unavailable: %s. Falling back to IM4U material."),
+				*TemplatePath);
+		}
+		else
+		{
+			bool bMICCreated = false;
+			UMaterialInstanceConstant* MaterialInstance = Cast<UMaterialInstanceConstant>(
+				CreateMaterialInst(
+					ParentObjName,
+					TEXT("VRM4U_") + MaterialFullName,
+					ParentMaterial,
+					&bMICCreated));
+			if (MaterialInstance)
+			{
+				const int32 BaseTextureIndex = PmxMaterial.TextureIndex;
+				if (textureAssetList.IsValidIndex(BaseTextureIndex) && textureAssetList[BaseTextureIndex])
+				{
+					UTexture* BaseTexture = textureAssetList[BaseTextureIndex];
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("gltf_tex_diffuse"), BaseTexture);
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_MainTex"), BaseTexture);
+				}
+
+				const int32 ToonTextureIndex = PmxMaterial.ToonTextureIndex;
+				if (textureAssetList.IsValidIndex(ToonTextureIndex) && textureAssetList[ToonTextureIndex])
+				{
+					UTexture* ToonTexture = textureAssetList[ToonTextureIndex];
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_ShadeTexture"), ToonTexture);
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_Shade"), ToonTexture);
+				}
+
+				const FLinearColor DiffuseColor(
+					PmxMaterial.Diffuse[0],
+					PmxMaterial.Diffuse[1],
+					PmxMaterial.Diffuse[2],
+					PmxMaterial.Diffuse[3]);
+				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("mtoon_Color"), DiffuseColor);
+				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("gltf_basecolor"), DiffuseColor);
+				MaterialInstance->PostEditChange();
+				MaterialInstance->MarkPackageDirty();
+				if (bMICCreated)
+				{
+					FAssetRegistryModule::AssetCreated(MaterialInstance);
+				}
+
+				OutMaterials.Add(MaterialInstance);
+				return;
+			}
+
+			UE_LOG(LogCategoryPMXMaterialImport, Error,
+				TEXT("Could not create VRM4U material instance for PMX material '%s'. Falling back to IM4U material."),
+				*MaterialFullName);
+		}
+	}
 
 	if (false == bCreateMaterialInstMode)
 	{
