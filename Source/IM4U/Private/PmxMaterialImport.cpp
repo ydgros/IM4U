@@ -1,6 +1,7 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxMaterialImport.h"
 #include "IM4UPrivatePCH.h"
+#include "Engine/SubsurfaceProfile.h"
 
 DEFINE_LOG_CATEGORY(LogCategoryPMXMaterialImport)
 
@@ -864,6 +865,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	bool bCreateMaterialInstMode,
 	bool bMaterialUnlit,
 	bool bUseVRM4UMaterials,
+	bool bUseVRM4USSSProfile,
 	TArray<UMaterialInterface*>& OutMaterials,
 	TArray<UTexture*>& textureAssetList
 )
@@ -876,18 +878,26 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	//删除禁止字符（如果模型名称中包含禁止字符时的故障保护）)
 	ParentObjName = ObjectTools::SanitizeObjectName(ParentObjName);
 
-	if (bUseVRM4UMaterials)
+	if (bUseVRM4UMaterials || bUseVRM4USSSProfile)
 	{
 		const bool bTranslucent = PmxMaterial.Diffuse[3] < 1.0f;
 		const bool bTwoSided = PmxMaterial.CullingOff != 0;
-		FString TemplateName = TEXT("MI_VrmMToonOptUnlit");
-		if (bTranslucent)
+		FString TemplateName;
+		if (bUseVRM4USSSProfile)
 		{
-			TemplateName += TEXT("Translucent");
+			TemplateName = TEXT("MI_VrmMToonOptSSSProfile");
 		}
 		else
 		{
-			TemplateName += TEXT("Opaque");
+			TemplateName = TEXT("MI_VrmMToonOptUnlit");
+			if (bTranslucent)
+			{
+				TemplateName += TEXT("Translucent");
+			}
+			else
+			{
+				TemplateName += TEXT("Opaque");
+			}
 		}
 		if (bTwoSided)
 		{
@@ -911,7 +921,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 			UMaterialInstanceConstant* MaterialInstance = Cast<UMaterialInstanceConstant>(
 				CreateMaterialInst(
 					ParentObjName,
-					TEXT("VRM4U_") + MaterialFullName,
+					(bUseVRM4USSSProfile ? TEXT("VRM4U_SSS_") : TEXT("VRM4U_")) + MaterialFullName,
 					ParentMaterial,
 					&bMICCreated));
 			if (MaterialInstance)
@@ -939,15 +949,56 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 					PmxMaterial.Diffuse[3]);
 				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("mtoon_Color"), DiffuseColor);
 				MaterialInstance->SetVectorParameterValueEditorOnly(TEXT("gltf_basecolor"), DiffuseColor);
-				MaterialInstance->PostEditChange();
-				MaterialInstance->MarkPackageDirty();
-				if (bMICCreated)
+				bool bProfileReady = true;
+				if (bUseVRM4USSSProfile)
 				{
-					FAssetRegistryModule::AssetCreated(MaterialInstance);
-				}
+					UPackage* MaterialPackage = MaterialInstance->GetOutermost();
+					const FName ProfileName(*FString::Printf(TEXT("SP_VRM4U_%s"), *ParentObjName));
+					USubsurfaceProfile* SubsurfaceProfile = FindObject<USubsurfaceProfile>(
+						MaterialPackage,
+						*ProfileName.ToString());
+					if (!SubsurfaceProfile)
+					{
+						const FName UniqueProfileName = MakeUniqueObjectName(
+							MaterialPackage,
+							USubsurfaceProfile::StaticClass(),
+							ProfileName);
+						SubsurfaceProfile = NewObject<USubsurfaceProfile>(
+							MaterialPackage,
+							UniqueProfileName,
+							RF_Public | RF_Standalone);
+						if (SubsurfaceProfile)
+						{
+							MaterialPackage->SetDirtyFlag(true);
+							FAssetRegistryModule::AssetCreated(SubsurfaceProfile);
+						}
+					}
 
-				OutMaterials.Add(MaterialInstance);
-				return;
+					if (!SubsurfaceProfile)
+					{
+						UE_LOG(LogCategoryPMXMaterialImport, Error,
+							TEXT("Could not create VRM4U Subsurface Profile for PMX material '%s'. Falling back to IM4U material."),
+							*MaterialFullName);
+						bProfileReady = false;
+					}
+					else
+					{
+						MaterialInstance->SubsurfaceProfile = SubsurfaceProfile;
+						MaterialInstance->bOverrideSubsurfaceProfile = true;
+					}
+				}
+				if (bProfileReady)
+				{
+					MaterialInstance->PostEditChange();
+					MaterialInstance->MarkPackageDirty();
+					if (bMICCreated)
+					{
+						FAssetRegistryModule::AssetCreated(MaterialInstance);
+					}
+
+					OutMaterials.Add(MaterialInstance);
+					return;
+				}
 			}
 
 			UE_LOG(LogCategoryPMXMaterialImport, Error,
