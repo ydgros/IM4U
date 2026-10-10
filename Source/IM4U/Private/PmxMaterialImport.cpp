@@ -932,15 +932,18 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 					UTexture* BaseTexture = textureAssetList[BaseTextureIndex];
 					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("gltf_tex_diffuse"), BaseTexture);
 					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_MainTex"), BaseTexture);
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_Shade"), BaseTexture);
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_ShadeTexture"), BaseTexture);
 				}
 
+				//建议删除
 				const int32 ToonTextureIndex = PmxMaterial.ToonTextureIndex;
 				if (textureAssetList.IsValidIndex(ToonTextureIndex) && textureAssetList[ToonTextureIndex])
 				{
 					UTexture* ToonTexture = textureAssetList[ToonTextureIndex];
-					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_ShadeTexture"), ToonTexture);
-					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_Shade"), ToonTexture);
+					MaterialInstance->SetTextureParameterValueEditorOnly(TEXT("mtoon_tex_Toon"), ToonTexture);
 				}
+				//建议删除				
 
 				const FLinearColor DiffuseColor(
 					PmxMaterial.Diffuse[0],
