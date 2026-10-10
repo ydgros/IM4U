@@ -433,12 +433,24 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				ImportUI->bSubsurfaceProfileVRM4U,
 				Materials,
 				textureAssetList);
+			if (!Materials.IsValidIndex(k) || !Materials[k])
+			{
+				UE_LOG(LogCategoryPMXMaterialImport, Error,
+					TEXT("Failed to create material for PMX material '%s'. Using the default surface material for this slot."),
+					*PmxMeshInfo->materialList[k].Name);
+				if (!Materials.IsValidIndex(k))
+				{
+					Materials.SetNum(k + 1);
+				}
+				Materials[k] = UMaterial::GetDefaultMaterial(MD_Surface);
+			}
+
 			{
 				int ExistingMatIndex = k;
 				int MaterialIndex = k;
 
 				// material asset set flag for morph target 
-				if (ImportUI->bImportMorphTargets) 
+				if (ImportUI->bImportMorphTargets && Materials.IsValidIndex(MaterialIndex))
 				{
 					if (UMaterial* UnrealMaterialPtr = Cast<UMaterial>(Materials[MaterialIndex]))
 					{

@@ -725,22 +725,8 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 		return nullptr;
 	}
 
-	TArray<UMaterialInterface*> FinalMaterialList;
-
 	for (int32 MaterialIndex = 0; MaterialIndex < pmxMeshInfoPtr->materialList.Num(); ++MaterialIndex)
 	{
-    	const MMD4UE4::PMX_MATERIAL& PmxMat = pmxMeshInfoPtr->materialList[MaterialIndex];
-    	FString MaterialName = PmxMat.Name;
-    	MaterialName.ReplaceCharInline(TEXT(' '), TEXT('_'));
-    	FString AssetPath = FString::Printf(TEXT("/Game/MMD/Materials/%s.%s"), *MaterialName, *MaterialName);    
-    	UMaterialInterface* SourceMaterial = LoadObject<UMaterialInterface>(nullptr, *AssetPath);
-    	if (!SourceMaterial)
-    	{
-        	UE_LOG(LogTemp, Warning, TEXT("Could not load material: %s. Using default."), *AssetPath);
-        	SourceMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-    	}
-    	FinalMaterialList.Add(SourceMaterial);
-		//Add an entry for each unique material
     	SkeletalMeshImportData::FMaterial NewMaterial;
     	SkelMeshImportDataPtr->Materials.Add(NewMaterial);
 	}
