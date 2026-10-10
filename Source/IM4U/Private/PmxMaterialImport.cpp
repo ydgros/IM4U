@@ -47,48 +47,6 @@ namespace
 		}
 	}
 
-	void DisableNaniteOverrideForImportedMaterial(UMaterialInterface* MaterialInterface)
-	{
-		if (UMaterialInstanceConstant* MaterialInstance =
-			Cast<UMaterialInstanceConstant>(MaterialInterface))
-		{
-			const bool bNeedsUpdate =
-				MaterialInstance->NaniteOverrideMaterial.bEnableOverride ||
-				MaterialInstance->NaniteOverrideMaterial.GetOverrideMaterial() != nullptr;
-			if (bNeedsUpdate)
-			{
-				MaterialInstance->NaniteOverrideMaterial.bEnableOverride = false;
-#if WITH_EDITORONLY_DATA
-				MaterialInstance->NaniteOverrideMaterial.OverrideMaterialEditor = nullptr;
-#endif
-				MaterialInstance->PostEditChange();
-				MaterialInstance->MarkPackageDirty();
-			}
-			return;
-		}
-
-		UMaterial* Material = Cast<UMaterial>(MaterialInterface);
-		if (!Material)
-		{
-			return;
-		}
-
-		const bool bNeedsUpdate =
-			Material->NaniteOverrideMaterial.bEnableOverride ||
-			Material->NaniteOverrideMaterial.GetOverrideMaterial() != nullptr;
-		if (!bNeedsUpdate)
-		{
-			return;
-		}
-
-		Material->NaniteOverrideMaterial.bEnableOverride = false;
-#if WITH_EDITORONLY_DATA
-		Material->NaniteOverrideMaterial.OverrideMaterialEditor = nullptr;
-#endif
-		Material->PostEditChange();
-		Material->MarkPackageDirty();
-	}
-
 	FString DetectTextureImportExtension(const FString& FileName, const TArray<uint8>& Data)
 	{
 		const FString FileExtension = FPaths::GetExtension(FileName).ToLower();
