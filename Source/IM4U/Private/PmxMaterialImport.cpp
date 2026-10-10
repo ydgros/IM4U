@@ -807,7 +807,6 @@ if (UnrealMaterial->AmbientOcclusion.Expression == nullptr)
 #endif
 	
 	UnrealMaterial->TwoSided = false;
-	DisableNaniteOverrideForImportedMaterial(UnrealMaterial);
 
 	// IF Translucent Opacu?
 	//UnrealMaterial->BlendMode = BLEND_Translucent;
@@ -883,7 +882,6 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 			// do not override existing materials
 			if (FoundMaterial)
 			{
-				DisableNaniteOverrideForImportedMaterial(FoundMaterial);
 				DisableTwoSidedForImportedMaterial(FoundMaterial);
 				//ImportedMaterialData.AddImportedMaterial( PmxMaterial, *FoundMaterial );
 				OutMaterials.Add(FoundMaterial);
