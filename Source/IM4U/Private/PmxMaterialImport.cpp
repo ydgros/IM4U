@@ -824,8 +824,10 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	TArray<UTexture*>& textureAssetList
 )
 {
-	FString MaterialFullName = //"M_" + 
-		PmxMaterial.Name; // ANSI_TO_TCHAR(MakeName(PmxMaterial.Name));
+	//"M_" +
+	//ANSI_TO_TCHAR(MakeName(PmxMaterial.Name));
+	FString MaterialFullName = PmxMaterial.Name;
+
 	//删除禁止文字（如果材质名称中包含禁止文字时的故障保护）)
 	MaterialFullName = ObjectTools::SanitizeObjectName(MaterialFullName);
 
