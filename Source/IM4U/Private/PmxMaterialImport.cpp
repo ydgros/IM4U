@@ -1,7 +1,6 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxMaterialImport.h"
 #include "IM4UPrivatePCH.h"
-#include "Engine/SubsurfaceProfile.h"
 
 DEFINE_LOG_CATEGORY(LogCategoryPMXMaterialImport)
 
@@ -864,7 +863,6 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 	MMD4UE4::PMX_MATERIAL& PmxMaterial,
 	bool bCreateMaterialInstMode,
 	bool bMaterialUnlit,
-	bool bSubsurfaceProfileVRM4U,
 	TArray<UMaterialInterface*>& OutMaterials,
 	TArray<UTexture*>& textureAssetList
 )

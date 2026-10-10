@@ -429,7 +429,6 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				PmxMeshInfo->materialList[k],
 				ImportUI->bCreateMaterialInstMode,
 				ImportUI->bUnlitMaterials,
-				ImportUI->bSubsurfaceProfileVRM4U,
 				Materials,
 				textureAssetList);
 			if (!Materials.IsValidIndex(k) || !Materials[k])

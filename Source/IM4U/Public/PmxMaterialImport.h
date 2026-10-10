@@ -104,7 +104,6 @@ public:
 		MMD4UE4::PMX_MATERIAL& PmxMaterial,
 		bool bCreateMaterialInstMode,
 		bool bMaterialUnlit,
-		bool bSubsurfaceProfileVRM4U,
 		TArray<UMaterialInterface*>& OutMaterials,
 		TArray<UTexture*> &textureAssetList
 	);

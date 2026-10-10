@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "Engine.h"
+#include "Engine/SubsurfaceProfile.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "ImportUtils/SkelImport.h"
 #include "Misc/FbxErrors.h"
