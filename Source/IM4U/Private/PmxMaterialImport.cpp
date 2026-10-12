@@ -166,11 +166,13 @@ void UPmxMaterialImport::AssetsCreateTexture(
 		FString TexturePackageName;
 		FString BasePackageName;
 		if (InParentx) {
-			BasePackageName = FPackageName::GetLongPackagePath(InParentx->GetOutermost()->GetName()) / TextureName;
+			BasePackageName = FPackageName::GetLongPackagePath(InParentx->GetOutermost()->GetName()) /
+				D_IM4U_ImportedTexture_FolderName / TextureName;
 			InParent = InParentx;
 		}
 		else {
-			BasePackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) / TextureName;
+			BasePackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) /
+				D_IM4U_ImportedTexture_FolderName / TextureName;
 		}
 
 		FString BasePackageName_2 = UPackageTools::SanitizePackageName(BasePackageName); //C4996 PackageTools to UPackageTools
@@ -309,7 +311,8 @@ UTexture* UPmxMaterialImport::ImportTexture(
 
 	// set where to place the textures
 	FString BasePackageName
-		= FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) / TextureName;
+		= FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) /
+		D_IM4U_ImportedTexture_FolderName / TextureName;
 	BasePackageName = UPackageTools::SanitizePackageName(BasePackageName); //C4996
 
 	UTexture* ExistingTexture = nullptr;

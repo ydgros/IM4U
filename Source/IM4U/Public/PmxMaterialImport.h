@@ -44,6 +44,12 @@ class UPmxMaterialImport
 	 */
 #define D_IM4U_ImportedMaterial_FolderName	TEXT("Materials")
 
+	/*
+*导入模型时生成的纹理贴图的存放子文件夹名
+*与SkeletalMesh并列，不改变网格所在目录
+	 */
+#define D_IM4U_ImportedTexture_FolderName	TEXT("Textures")
+
 	/* 
 	 * Material Inst用Paramem Name
 	 */
