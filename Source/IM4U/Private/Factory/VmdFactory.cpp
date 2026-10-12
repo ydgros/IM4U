@@ -682,71 +682,9 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 			// mark package as dirty
 			//MarkPackageDirty();  //表达式未使用
 			//SkeletalMesh->MarkPackageDirty();
-			if (const IAnimationDataModel* DataModel = LastCreatedAnim->GetDataModel())
-			{
-				TArray<FName> BoneTrackNames;
-				DataModel->GetBoneTrackNames(BoneTrackNames);
-				UE_LOG(LogMMD4UE4_VMDFactory, Log,
-					TEXT("Before animation PostEditChange: data model contains %d bone tracks."),
-					BoneTrackNames.Num());
-				for (const TCHAR* BoneNameString : {
-					TEXT("_HemB-L-E01"), TEXT("_HemB-L-E02"), TEXT("_HemB-L-E03"), TEXT("_HemB-L-E04"),
-					TEXT("_HemB-R-E01"), TEXT("_HemB-R-E02"), TEXT("_HemB-R-E03"), TEXT("_HemB-R-E04")
-				})
-				{
-					const FName BoneName(BoneNameString);
-					if (!BoneTrackNames.Contains(BoneName))
-					{
-						UE_LOG(LogMMD4UE4_VMDFactory, Error,
-							TEXT("Before animation PostEditChange, data model has no exact-name bone track for '%s'."),
-							BoneNameString);
-					}
-				}
-			}
-
 			LastCreatedAnim->PostEditChange();
 			LastCreatedAnim->SetPreviewMesh(SkeletalMesh);
 			LastCreatedAnim->MarkPackageDirty();
-
-			if (const IAnimationDataModel* DataModel = LastCreatedAnim->GetDataModel())
-			{
-				const int32 NumberOfFrames = DataModel->GetNumberOfFrames();
-				const int32 LastFrame = FMath::Max(NumberOfFrames - 1, 0);
-				TArray<FName> BoneTrackNames;
-				DataModel->GetBoneTrackNames(BoneTrackNames);
-				UE_LOG(LogMMD4UE4_VMDFactory, Log,
-					TEXT("Final animation model contains %d bone tracks."),
-					BoneTrackNames.Num());
-				for (const TCHAR* BoneNameString : {
-					TEXT("_HemB-L-E01"), TEXT("_HemB-L-E02"), TEXT("_HemB-L-E03"), TEXT("_HemB-L-E04"),
-					TEXT("_HemB-R-E01"), TEXT("_HemB-R-E02"), TEXT("_HemB-R-E03"), TEXT("_HemB-R-E04")
-				})
-				{
-					const FName BoneName(BoneNameString);
-					const int32 TrackIndex = BoneTrackNames.IndexOfByKey(BoneName);
-					if (TrackIndex == INDEX_NONE)
-					{
-						UE_LOG(LogMMD4UE4_VMDFactory, Error,
-							TEXT("Final animation model has no exact-name bone track for '%s'."),
-							BoneNameString);
-						continue;
-					}
-
-					const FTransform FirstTransform = DataModel->GetBoneTrackTransform(
-						BoneName, FFrameNumber(0));
-					const FTransform LastTransform = DataModel->GetBoneTrackTransform(
-						BoneName, FFrameNumber(LastFrame));
-					UE_LOG(LogMMD4UE4_VMDFactory, Log,
-						TEXT("Final Hem animation model '%s': track index=%d, frames=%d, first rot=%s, last rot=%s, delta=%.4f degrees."),
-						BoneNameString,
-						TrackIndex,
-						NumberOfFrames,
-						*FirstTransform.GetRotation().ToString(),
-						*LastTransform.GetRotation().ToString(),
-						FMath::RadiansToDegrees(FirstTransform.GetRotation().AngularDistance(
-							LastTransform.GetRotation())));
-				}
-			}
 
 			if (IsValid(SkeletalMesh) && IsValid(Skeleton))
 			{
