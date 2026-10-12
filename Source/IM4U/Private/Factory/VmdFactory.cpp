@@ -1192,15 +1192,7 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 				       *targetName.ToString());
 			}
 			//nop
-			//设定与帧相同的值
-			for (int32 i = 0; i < DestSeq->GetNumberOfSampledKeys(); i++)
-			{
-				FTransform nrmTrnc;
-				nrmTrnc.SetIdentity();
-				RawTrack.PosKeys.Add(FVector3f(nrmTrnc.GetTranslation() + refTranslation));
-				RawTrack.RotKeys.Add(FQuat4f(nrmTrnc.GetRotation()));
-				RawTrack.ScaleKeys.Add(FVector3f(nrmTrnc.GetScale3D()));
-			}
+			//未匹配到VMD轨道：不分配身份关键帧，交由AddTrack部分确保正式轨道存在
 		}
 		else
 		{
@@ -1608,7 +1600,11 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 		//DestSeq->AddNewRawTrack(BoneName, &RawTrack);
 
 		int32 NewTrackIndex = INDEX_NONE; //5.8
-		if (RawTrack.PosKeys.Num() > 1)
+		const bool bHasTrackKeys =
+			RawTrack.PosKeys.Num() > 0 ||
+			RawTrack.RotKeys.Num() > 0 ||
+			RawTrack.ScaleKeys.Num() > 0;
+		if (bHasTrackKeys)
 		{
 			bool bTrackExists = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
