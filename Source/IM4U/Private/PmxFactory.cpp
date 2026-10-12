@@ -25,7 +25,7 @@ namespace
 	 */
 	const TCHAR* GetMMDExtendAssetFolderName()
 	{
-		return TEXT("MMDExtendAsset");
+		return TEXT("ExtendAsset");
 	}
 }
 
