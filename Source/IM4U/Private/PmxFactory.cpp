@@ -18,6 +18,15 @@ namespace
 	{
 		return FPackageName::GetLongPackagePath(SkeletalMesh->GetOutermost()->GetName());
 	}
+
+	/*
+*MMDExtendAsset的存放子文件夹名
+*与SkeletalMesh、PhysicsAsset、Skeleton并列于模型目录下
+	 */
+	const TCHAR* GetMMDExtendAssetFolderName()
+	{
+		return TEXT("MMDExtendAsset");
+	}
 }
 
 /////////////////////////////////////////////////////////
@@ -1270,7 +1279,7 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 	// TBD::アセット生成関数で既存アセット時の判断ができていないと思われる。
 	// 場合によってはVMDFactoryのアセット生成処理を元に再設計すること
 	FString ObjectName = FString::Printf(TEXT("%s_MMDExtendAsset"), *Name.ToString());
-	const FString AssetDirectory = GetMeshAssetDirectory(SkeletalMesh);
+	const FString AssetDirectory = GetMeshAssetDirectory(SkeletalMesh) / GetMMDExtendAssetFolderName();
 	bool bMMDExtendAssetCreated = false;
 	//UMMDExtendAsset * NewMMDExtendAsset = nullptr; //5.8
 	UMMDExtendAsset *NewMMDExtendAsset = CreateAsset<UMMDExtendAsset>(
