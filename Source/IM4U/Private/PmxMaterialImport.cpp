@@ -861,7 +861,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 		}
 
 		FString BasePackageName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) /
-			MaterialFullName;
+			D_IM4U_ImportedMaterial_FolderName / MaterialFullName;
 		BasePackageName = UPackageTools::SanitizePackageName(BasePackageName); //C4996
 
 		// The material could already exist in the project
@@ -1286,7 +1286,8 @@ UMaterialInterface* UPmxMaterialImport::DuplicateBaseMaterial(
 	TArray<UObject*> ObjectsToSync;
 
 	//复制基础材质
-	FString TargetPathName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName());
+	FString TargetPathName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) /
+		D_IM4U_ImportedMaterial_FolderName;
 	UMaterial* BaseMat = nullptr;
 	FString BaseMatSimpleName;
 	{
@@ -1370,7 +1371,8 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst(
 	// 新MIC名称
 	FString NewMICName = FString::Printf(TEXT("MI_%s"), *TargetMaterialName);
 
-	FString TargetPathName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) / NewMICName;
+	FString TargetPathName = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()) /
+		D_IM4U_ImportedMaterial_FolderName / NewMICName;
 
 	// The material could already exist in the project
 	FName ObjectPath = *(TargetPathName + TEXT(".") + NewMICName);

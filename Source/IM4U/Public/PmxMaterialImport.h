@@ -38,6 +38,12 @@ class UPmxMaterialImport
 #define D_IM4U_MMDBaseMat_Path_Unlit_Normal "/IM4U/Material/M_MMD_MatBase_UnLit.M_MMD_MatBase_UnLit"
 #define D_IM4U_MMDBaseMat_Path_Unlit_Luminou "/IM4U/Material/M_MMD_MatBase_UnLit_Luminus.M_MMD_MatBase_UnLit_Luminus"
 
+	/*
+*导入模型时生成的材质与材质实例的存放子文件夹名
+*与SkeletalMesh、MMDExtendAsset、PhysicsAsset、Skeleton并列，不额外改变网格所在目录
+	 */
+#define D_IM4U_ImportedMaterial_FolderName	TEXT("Materials")
+
 	/* 
 	 * Material Inst用Paramem Name
 	 */
