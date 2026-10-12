@@ -35,15 +35,15 @@ class UVmdImportUI : public UObject
 
 	/* Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (OBJRestrict = "false"))
-		class USkeleton* Skeleton;
+		TObjectPtr<class USkeleton> Skeleton = nullptr;
 
 	/* SkeletonMesh to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (OBJRestrict = "false"))
-		class USkeletalMesh* SkeletonMesh;
+		TObjectPtr<class USkeletalMesh> SkeletonMesh = nullptr;
 
 	//UPROPERTY(EditAnywhere, Category = Mesh, meta = (OBJRestrict = "false"))
 	UPROPERTY()
-	class UIKRigDefinition* IKRig;
+	TObjectPtr<class UIKRigDefinition> IKRig = nullptr;
 
 	/* True to import animations from the FBX File */
 	//UPROPERTY(EditAnywhere, config, Category = Animation, meta = (ImportType = "SkeletalMesh|Animation"))
@@ -57,12 +57,8 @@ class UVmdImportUI : public UObject
 
 	/* Import data used when importing static meshes */
 	//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "StaticMesh"))
-	//class UFbxStaticMeshImportData* StaticMeshImportData;
-
-	/* Import data used when importing static meshes */
-	//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "StaticMesh"))
 	UPROPERTY()
-		class UMMDStaticMeshImportData* StaticMeshImportData;
+		TObjectPtr<class UMMDStaticMeshImportData> StaticMeshImportData = nullptr;
 		
 	/* Import data used when importing skeletal meshes */
 	//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "SkeletalMesh"))
@@ -71,7 +67,7 @@ class UVmdImportUI : public UObject
 	/* Import data used when importing skeletal meshes */
 	//UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta = (ImportType = "SkeletalMesh"))
 	UPROPERTY()
-		class UMMDSkeletalMeshImportData* SkeletalMeshImportData;
+		TObjectPtr<class UMMDSkeletalMeshImportData> SkeletalMeshImportData = nullptr;
 
 	/* Import data used when importing animations */
 	//UPROPERTY(EditAnywhere, Instanced, Category = Animation, meta = (editcondition = "bImportAnimations", ImportType = "Animation"))
@@ -97,7 +93,8 @@ class UVmdImportUI : public UObject
 
 	/* Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
 	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //ydgro 取消注释打开AnimSequenceAsset导入菜单
-		class UAnimSequence* AnimSequenceAsset;
+	UPROPERTY()
+		TObjectPtr<class UAnimSequence> AnimSequenceAsset = nullptr;
 
 	/* Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
 	//UPROPERTY(EditAnywhere, Category = AnimationList, meta = (ImportType = "Animation"))
@@ -105,11 +102,13 @@ class UVmdImportUI : public UObject
 	
 	/* MMD2UE4NameTableRow to use for imported asset. When importing a Anim, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
 	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //ydgro 取消注释打开MMD2UE4NameTableRow导入菜单
-		UDataTable*  MMD2UE4NameTableRow;
+	UPROPERTY()
+		TObjectPtr<UDataTable> MMD2UE4NameTableRow = nullptr;
 
 	/* mmd extend assset to use for calc ik . */
 	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false"))
-		class UMMDExtendAsset*  MmdExtendAsset;
+	UPROPERTY()
+		TObjectPtr<class UMMDExtendAsset> MmdExtendAsset = nullptr;
 
 	//struct FTableRowBase MMD2UE4NameTableRowDmmy;
 
