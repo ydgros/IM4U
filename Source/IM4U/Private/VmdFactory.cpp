@@ -7,6 +7,7 @@
 #include "VmdImporter.h"
 #include "VmdImportUI.h"
 #include "MMDExtendAsset.h"
+#include "MmdBoneNameUtils.h"
 #include "AnimationUtils.h"
 #include "Animation/AnimData/CurveIdentifier.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -1118,12 +1119,10 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 					*vmdMotionInfo->keyBoneList[vmdKeyListIndex].TrackName,
 					*targetName.ToString());
 				const FString MatchedBoneNameString = targetName.ToString();
-				if (MatchedBoneNameString.Contains(TEXT("Bowknot"), ESearchCase::IgnoreCase) ||
-					MatchedBoneNameString.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
-					MatchedBoneNameString.Contains(TEXT("HatB"), ESearchCase::IgnoreCase))
+				if (IM4U::IsRenamedMmdBoneName(MatchedBoneNameString))
 				{
 					UE_LOG(LogMMD4UE4_VMDFactory, Log,
-						TEXT("Matched accessory animation source '%s' to skeleton bone '%s' (%d sorted keys)."),
+						TEXT("Matched renamed MMD bone animation source '%s' to skeleton bone '%s' (%d sorted keys)."),
 						*vmdMotionInfo->keyBoneList[vmdKeyListIndex].TrackName,
 						*MatchedBoneNameString,
 						vmdMotionInfo->keyBoneList[vmdKeyListIndex].sortIndexList.Num());
@@ -1148,7 +1147,9 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 			}
 
 			const FString TargetBoneNameString = targetName.ToString();
+			// 被改名过的MMD骨骼（原'+'开头）以及附件类骨骼，单独提示便于排查
 			const bool bIsAccessoryBone =
+				IM4U::IsRenamedMmdBoneName(TargetBoneNameString) ||
 				TargetBoneNameString.Contains(TEXT("Bowknot"), ESearchCase::IgnoreCase) ||
 				TargetBoneNameString.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
 				TargetBoneNameString.Contains(TEXT("HatB"), ESearchCase::IgnoreCase);
@@ -1661,11 +1662,7 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 
 				const FString BoneNameString = BoneName.ToString();
 				const bool bIsMmdMotionDiagnosticBone =
-					BoneNameString.StartsWith(TEXT("_HemB-L-E")) ||
-					BoneNameString.StartsWith(TEXT("_HemB-R-E")) ||
-					BoneNameString.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
-					BoneNameString.Contains(TEXT("BowknotB"), ESearchCase::IgnoreCase) ||
-					BoneNameString.Contains(TEXT("HatB"), ESearchCase::IgnoreCase);
+					IM4U::IsRenamedMmdBoneName(BoneNameString);
 				if (bIsMmdMotionDiagnosticBone)
 				{
 					float MaxPositionDelta = 0.0f;
@@ -1864,10 +1861,10 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 			DestSeq->GetDataModel() == ControllerModel ? TEXT("true") : TEXT("false"));
 		for (const FName TrackName : ControllerTrackNames)
 		{
-			if (TrackName.ToString().Contains(TEXT("HemB")))
+			if (IM4U::IsRenamedMmdBoneName(TrackName))
 			{
 				UE_LOG(LogMMD4UE4_VMDFactory, Log,
-					TEXT("Controller model HemB track name: '%s'."),
+					TEXT("Controller model renamed MMD bone track name: '%s'."),
 					*TrackName.ToString());
 			}
 		}
