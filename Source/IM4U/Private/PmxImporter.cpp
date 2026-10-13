@@ -64,6 +64,21 @@ namespace MMD4UE4
 		FMemory::Memcpy(&this->formatVer, Buffer, sizeof(this->formatVer));
 		Buffer += sizeof(this->formatVer);
 
+		// 支持PMX 2.0 / 2.1；其他版本明确报错，避免按错误布局继续解析
+		{
+			const float RoundedVer = FMath::RoundToFloat(this->formatVer * 10.0f) / 10.0f;
+			if (RoundedVer < 2.0f || RoundedVer > 2.1f)
+			{
+				UE_LOG(LogMMD4UE4_PmxMeshInfo, Error,
+					TEXT("PMX Import FALSE/Return /Unsupported format version[%.2f]. Supported: 2.0, 2.1"),
+					this->formatVer);
+				return false;
+			}
+			UE_LOG(LogMMD4UE4_PmxMeshInfo, Log,
+				TEXT("PMX Import format version[%.2f] accepted."),
+				this->formatVer);
+		}
+
 		Buffer += sizeof(uint8);
 		/*
 		字节列-byte

@@ -325,6 +325,16 @@ namespace MMD4UE4
 		bool bReadError;
 		char				magic[4];
 		float				formatVer;
+
+		/* PMX格式版本判定（2.0 / 2.1） */
+		bool IsFormatVersionAtLeast(float InVersion) const
+		{
+			return formatVer + 0.001f >= InVersion;
+		}
+		bool IsPmx21() const
+		{
+			return IsFormatVersionAtLeast(2.1f);
+		}
 		PMX_BASEINFO		baseHeader;
 		FString				modelNameJP;
 		FString				modelNameEng;
