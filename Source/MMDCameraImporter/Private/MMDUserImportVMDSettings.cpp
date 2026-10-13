@@ -13,7 +13,7 @@ UMmdUserImportVmdSettings::UMmdUserImportVmdSettings(const FObjectInitializer& I
 {
 	ImportUniformScale = 10.0f;
 	CameraCutImportType = ECameraCutImportType::OneFrameInterval;
-	CameraCount = 2;
+	CameraCount = 1;
 	bAddMotionBlurKey = false;
 	MotionBlurAmount = 0.5f;
 }
