@@ -1,6 +1,26 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxMaterialImport.h"
-#include "IM4UPrivatePCH.h"
+#include "Misc/PackageName.h"
+#include "Misc/EngineVersionComparison.h"
+#include "Modules/ModuleManager.h"
+#include "AssetToolsModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ComponentReregisterContext.h"
+#include "PackageTools.h"
+#include "ObjectTools.h"
+#include "Engine/Texture2D.h"
+#include "Factories/TextureFactory.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "StaticParameterSet.h"
 
 DEFINE_LOG_CATEGORY(LogCategoryPMXMaterialImport)
 

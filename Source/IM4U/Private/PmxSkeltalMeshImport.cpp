@@ -1,14 +1,28 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxFactory.h"
 #include "VmdFactory.h"
-#include "IM4UPrivatePCH.h"
 #include "MeshDescription.h"
 #include "MmdBoneNameUtils.h"
+#include "Misc/FbxErrors.h"
+#include "Modules/ModuleManager.h"
+#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "ImportUtils/SkelImport.h"
+#include "Animation/MorphTarget.h"
+#include "Engine/SkeletalMesh.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialExpressionConstant.h"
+#include "Rendering/SkeletalMeshModel.h"
+#include "Misc/EngineVersionComparison.h"
+#include "LODUtilities.h"
 #if WITH_EDITOR
 #include "SkinnedAssetCompiler.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "PMXSkeltalMeshImpoter"
+
+//不建议开，针对旧版pmx的mmd骨骼可以开，新版有足d和足，开了会冲突
+#define USE_ENG_NAME 0
+
 extern TMap<FName, FName> NameMap;
 void initMmdNameMap();
 ////////////////////////////////////////////////////////////////////////////////////////////////
