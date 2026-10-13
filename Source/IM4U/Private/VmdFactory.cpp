@@ -1152,41 +1152,64 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 				TargetBoneNameString.Contains(TEXT("Bowknot"), ESearchCase::IgnoreCase) ||
 				TargetBoneNameString.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
 				TargetBoneNameString.Contains(TEXT("HatB"), ESearchCase::IgnoreCase);
-			if (bIsAccessoryBone)
+			// 按首字符前缀收集候选，用于区分"VMD完全没有该骨骼"与"名称写法不同"
+			FString SimilarTrackNames;
 			{
-				FString MatchingAccessoryTrackNames;
+				// 取骨架骨骼名的第一个字符（跳过 + _ 前缀）作为比较前缀
+				FString ComparePrefix = TargetBoneNameString;
+				ComparePrefix.TrimStartAndEndInline();
+				while (ComparePrefix.StartsWith(TEXT("+")) || ComparePrefix.StartsWith(TEXT("_")))
+				{
+					ComparePrefix.RightChopInline(1);
+				}
+				ComparePrefix = ComparePrefix.Left(1).ToLower();
+
 				for (const MMD4UE4::VmdKeyTrackList& Track : vmdMotionInfo->keyBoneList)
 				{
-					if (Track.TrackName.Contains(TEXT("Bowknot"), ESearchCase::IgnoreCase) ||
-						Track.TrackName.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
-						Track.TrackName.Contains(TEXT("HatB"), ESearchCase::IgnoreCase))
+					FString NormalizedTrackName = Track.TrackName;
+					NormalizedTrackName.TrimStartAndEndInline();
+					while (NormalizedTrackName.StartsWith(TEXT("+")) || NormalizedTrackName.StartsWith(TEXT("_")))
 					{
-						if (!MatchingAccessoryTrackNames.IsEmpty())
+						NormalizedTrackName.RightChopInline(1);
+					}
+					const bool bMatchesAccessoryKeyword =
+						Track.TrackName.Contains(TEXT("Bowknot"), ESearchCase::IgnoreCase) ||
+						Track.TrackName.Contains(TEXT("HairS"), ESearchCase::IgnoreCase) ||
+						Track.TrackName.Contains(TEXT("HatB"), ESearchCase::IgnoreCase);
+					const bool bSharesNamePrefix =
+						!ComparePrefix.IsEmpty() &&
+						NormalizedTrackName.Left(1).ToLower() == ComparePrefix;
+					if (bMatchesAccessoryKeyword || bSharesNamePrefix)
+					{
+						if (!SimilarTrackNames.IsEmpty())
 						{
-							MatchingAccessoryTrackNames += TEXT(", ");
+							SimilarTrackNames += TEXT(", ");
 						}
-						MatchingAccessoryTrackNames += Track.TrackName;
+						SimilarTrackNames += Track.TrackName;
 					}
 				}
-				if (MatchingAccessoryTrackNames.IsEmpty())
+			}
+			if (bIsAccessoryBone || !SimilarTrackNames.IsEmpty())
+			{
+				if (SimilarTrackNames.IsEmpty())
 				{
 					UE_LOG(LogMMD4UE4_VMDFactory, Warning,
-						TEXT("Unmatched accessory bone '%s'; VMD has no bone tracks containing 'Bowknot', 'HairS', or 'HatB'."),
+						TEXT("Unmatched bone '%s'; VMD has no bone track with a similar name."),
 						*TargetBoneNameString);
 				}
 				else
 				{
 					UE_LOG(LogMMD4UE4_VMDFactory, Warning,
-						TEXT("Unmatched accessory bone '%s'; VMD accessory tracks: %s"),
+						TEXT("Unmatched bone '%s'; VMD has similarly named bone tracks: %s"),
 						*TargetBoneNameString,
-						*MatchingAccessoryTrackNames);
+						*SimilarTrackNames);
 				}
 			}
 			{
 				UE_LOG(LogMMD4UE4_VMDFactory, Warning,
 				       TEXT("ImportVMDToAnimSequence Target Bone Not Found...[%s]"),
 				       *targetName.ToString());
-			}		
+			}
 			//未匹配到VMD轨道：不分配身份关键帧，交由AddTrack部分确保正式轨道存在
 		}
 		else
