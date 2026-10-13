@@ -1,6 +1,6 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxFactory.h"
-#include "Factory/VmdFactory.h"
+#include "VmdFactory.h"
 #include "IM4UPrivatePCH.h"
 #include "MeshDescription.h"
 #include "MmdBoneNameUtils.h"

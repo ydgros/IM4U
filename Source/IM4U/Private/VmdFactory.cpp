@@ -2,8 +2,8 @@
 #ifndef HEADER_H_
 #define HEADER_H_
 #endif
-#include "Factory/VmdFactory.h"
-#include "Factory/VmdImportOption.h"
+#include "VmdFactory.h"
+#include "VmdImportOption.h"
 #include "VmdImporter.h"
 #include "VmdImportUI.h"
 #include "MMDExtendAsset.h"
@@ -17,10 +17,6 @@
 #include "ObjectTools.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "RigEditor/IKRigController.h"
-
-/*
-#include "Factory/VmdImportOption.h"
-*/
 
 #define LOCTEXT_NAMESPACE "VMDImportFactory"
 
@@ -1190,8 +1186,7 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 				UE_LOG(LogMMD4UE4_VMDFactory, Warning,
 				       TEXT("ImportVMDToAnimSequence Target Bone Not Found...[%s]"),
 				       *targetName.ToString());
-			}
-			//nop
+			}		
 			//未匹配到VMD轨道：不分配身份关键帧，交由AddTrack部分确保正式轨道存在
 		}
 		else

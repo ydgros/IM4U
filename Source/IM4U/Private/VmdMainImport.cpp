@@ -4,7 +4,7 @@ Main implementation of FFbxImporter : import FBX data to Unreal
 =============================================================================*/
 #include "MMDSkeletalMeshImportData.h"
 #include "MMDStaticMeshImportData.h"
-#include "Factory/VmdFactory.h"
+#include "VmdFactory.h"
 #include "VmdImporter.h"
 #include "VmdOptionWindow.h"
 #include "EngineAnalytics.h"
