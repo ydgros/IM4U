@@ -30,34 +30,35 @@ DEFINE_LOG_CATEGORY(LogCategoryPMXMaterialImport)
 
 namespace
 {
-	void DisableTwoSidedForImportedMaterial(UMaterialInstanceConstant* MaterialInstance)
+	void EnableTwoSidedForImportedMaterial(UMaterialInstanceConstant* MaterialInstance)
 	{
 		const bool bNeedsUpdate =
-			MaterialInstance->BasePropertyOverrides.TwoSided ||
-			MaterialInstance->BasePropertyOverrides.bOverride_TwoSided;
+			!MaterialInstance->BasePropertyOverrides.TwoSided ||
+			!MaterialInstance->BasePropertyOverrides.bOverride_TwoSided;
 		if (bNeedsUpdate)
 		{
-			MaterialInstance->BasePropertyOverrides.TwoSided = false;
-			MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = false;
+			// 勾选前置覆写复选框，并把双面设为true
+			MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
+			MaterialInstance->BasePropertyOverrides.TwoSided = true;
 			MaterialInstance->UpdateOverridableBaseProperties();
 			MaterialInstance->MarkPackageDirty();
 		}
 	}
 
-	void DisableTwoSidedForImportedMaterial(UMaterialInterface* MaterialInterface)
+	void EnableTwoSidedForImportedMaterial(UMaterialInterface* MaterialInterface)
 	{
 		if (UMaterialInstanceConstant* MaterialInstance =
 			Cast<UMaterialInstanceConstant>(MaterialInterface))
 		{
-			DisableTwoSidedForImportedMaterial(MaterialInstance);
+			EnableTwoSidedForImportedMaterial(MaterialInstance);
 			return;
 		}
 
 		if (UMaterial* Material = Cast<UMaterial>(MaterialInterface))
 		{
-			if (Material->TwoSided)
+			if (!Material->TwoSided)
 			{
-				Material->TwoSided = false;
+				Material->TwoSided = true;
 				Material->PostEditChange();
 				Material->MarkPackageDirty();
 			}
@@ -699,7 +700,7 @@ if (UnrealMaterial->AmbientOcclusion.Expression == nullptr)
 #endif
 #endif
 	
-	UnrealMaterial->TwoSided = false;
+	UnrealMaterial->TwoSided = true;
 
 	// IF Translucent Opacu?
 	//UnrealMaterial->BlendMode = BLEND_Translucent;
@@ -777,7 +778,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 			// do not override existing materials
 			if (FoundMaterial)
 			{
-				DisableTwoSidedForImportedMaterial(FoundMaterial);
+				EnableTwoSidedForImportedMaterial(FoundMaterial);
 				//ImportedMaterialData.AddImportedMaterial( PmxMaterial, *FoundMaterial );
 				OutMaterials.Add(FoundMaterial);
 				return;
@@ -1464,7 +1465,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked(
 		);
 	}
 
-	DisableTwoSidedForImportedMaterial(pUMIC);
+	EnableTwoSidedForImportedMaterial(pUMIC);
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1576,7 +1577,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked_Unlit(
 		);
 	}
 
-	DisableTwoSidedForImportedMaterial(pUMIC);
+	EnableTwoSidedForImportedMaterial(pUMIC);
 
 	// 应用多个StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1699,7 +1700,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous(
 			specPowr);
 	}
 
-	DisableTwoSidedForImportedMaterial(pUMIC);
+	EnableTwoSidedForImportedMaterial(pUMIC);
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1822,7 +1823,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous_Unlit(
 			specPowr);
 	}
 
-	DisableTwoSidedForImportedMaterial(pUMIC);
+	EnableTwoSidedForImportedMaterial(pUMIC);
 
 	// StaticSwitchの適用 複数まとめて
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
