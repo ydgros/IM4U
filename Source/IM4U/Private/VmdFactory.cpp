@@ -1223,10 +1223,6 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 				       kybone.sortIndexList.Num());
 			}
 
-			bool dbg = false;
-			if (targetName == L"右ひじ")
-				dbg = true;
-
 			//事先针对各轨迹，在没有父Bone的情况下，在Local坐标下计算预定全部注册的帧（如果有更好的处理……讨论）
 			//如果进入90度以上的轴旋转，则由于四元数的原因或处理有错误而进入多余的旋转。
 			//通过上述方式，仅通过Z旋转（旋转运动），下半身和上半身的轴成为物理上不可能的旋转的组合。臭虫。
@@ -1465,7 +1461,6 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 
 		//DestSeq->AddNewRawTrack(BoneName, &RawTrack);
 
-		int32 NewTrackIndex = INDEX_NONE; //5.8
 		const bool bHasTrackKeys =
 			RawTrack.PosKeys.Num() > 0 ||
 			RawTrack.RotKeys.Num() > 0 ||

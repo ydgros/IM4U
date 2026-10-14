@@ -94,12 +94,6 @@ public:
 		TArray<UTexture*> &textureAssetList
 		);
 	///////////////////////////////////////
-	UTexture* ImportTexture(
-		//FbxFileTexture* FbxTexture, 
-		FString InTextureFileName,
-		bool bSetupAsNormalMap
-		);
-	///////////////////////////////////////
 	/*void AssetsCreateUnrealMaterial(
 		UObject * InParent,
 		FString MaterialName,
