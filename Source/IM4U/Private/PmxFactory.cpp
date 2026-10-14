@@ -1404,17 +1404,6 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 					addMMDIkInfo.IKBoneIndex != INDEX_NONE &&
 					addMMDIkInfo.TargetBoneIndex != INDEX_NONE &&
 					addMMDIkInfo.ikLinkList.Num() > 0;
-				const FString IKName = addMMDIkInfo.IKBoneName.ToString();
-				if (IKName.Contains(TEXT("足")) ||
-					IKName.Contains(TEXT("Leg"), ESearchCase::IgnoreCase))
-				{
-					UE_LOG(LogMMD4UE4_PMXFactory, Log,
-						TEXT("Imported leg IK: %s -> %s, links=%d, valid=%s"),
-						*IKName,
-						*addMMDIkInfo.TargetBoneName.ToString(),
-						addMMDIkInfo.ikLinkList.Num(),
-						addMMDIkInfo.checkIKIndex ? TEXT("true") : TEXT("false"));
-				}
 				//add
 				NewMMDExtendAsset->IkInfoList.Add(addMMDIkInfo);
 			}

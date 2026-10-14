@@ -1002,22 +1002,6 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 		UE_LOG(LogMMD4UE4_VMDFactory, Warning,
 		       TEXT("ImportVMDToAnimSequence : Target MMDExtendAsset is nullptr."));
 	}
-	else
-	{
-		int32 LegIKCount = 0;
-		for (const FMMD_IKInfo& IKInfo : mmdExtend->IkInfoList)
-		{
-			const FString IKName = IKInfo.IKBoneName.ToString();
-			if (IKName.Contains(TEXT("足")) ||
-				IKName.Contains(TEXT("Leg"), ESearchCase::IgnoreCase))
-			{
-				++LegIKCount;
-			}
-		}
-		UE_LOG(LogMMD4UE4_VMDFactory, Log,
-			TEXT("ImportVMDToAnimSequence : %d leg IK definitions available."),
-			LegIKCount);
-	}
 
 	float ResampleRate = 30.f;
 
@@ -1247,15 +1231,6 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 			//如果进入90度以上的轴旋转，则由于四元数的原因或处理有错误而进入多余的旋转。
 			//通过上述方式，仅通过Z旋转（旋转运动），下半身和上半身的轴成为物理上不可能的旋转的组合。臭虫。
 
-			if (targetName == L"右足ＩＫ")
-			{
-				UE_LOG(LogMMD4UE4_VMDFactory, Log, TEXT("右足ＩＫ"));
-			}
-			if (targetName == L"左足ＩＫ")
-			{
-				UE_LOG(LogMMD4UE4_VMDFactory, Log, TEXT("左足ＩＫ"));
-			}
-
 			for (int32 i = 0; i < DestSeq->GetNumberOfSampledKeys(); i++)
 			{
 				if (i == 0)
@@ -1477,134 +1452,6 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 						nextKeyFrame = kybone.keyList[nextKeyIndex].Frame;
 					}
 				}
-			}
-		}
-	}
-	// Bake leg IK foot locks into the imported animation to reduce foot sliding.
-	if (mmdExtend)
-	{
-		const FReferenceSkeleton& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
-		const int32 NumFrames = DestSeq->GetNumberOfSampledKeys();
-		const float LockDistanceThreshold = 1.5f;
-		const int32 MaxIterations = 8;
-
-		auto BuildGlobalPose = [&ReferenceSkeleton, &TempRawTrackList, NumBones, NumFrames](int32 FrameIndex,
-			TArray<FTransform>& GlobalPose)
-		{
-			GlobalPose.SetNum(NumBones);
-			for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
-			{
-				const FRawAnimSequenceTrack& Track = TempRawTrackList[BoneIndex];
-				const int32 KeyIndex = FMath::Min(FrameIndex, Track.PosKeys.Num() - 1);
-				FTransform LocalTransform = FTransform::Identity;
-				if (KeyIndex >= 0)
-				{
-					LocalTransform = FTransform(
-						FQuat(Track.RotKeys[KeyIndex]),
-						FVector(Track.PosKeys[KeyIndex]),
-						FVector(Track.ScaleKeys.IsValidIndex(KeyIndex) ? Track.ScaleKeys[KeyIndex] : FVector3f(1.0f)));
-				}
-				const int32 ParentIndex = ReferenceSkeleton.GetParentIndex(BoneIndex);
-				GlobalPose[BoneIndex] = ParentIndex == INDEX_NONE
-					? LocalTransform
-					: LocalTransform * GlobalPose[ParentIndex];
-			}
-		};
-
-		auto SetLocalFromGlobal = [&ReferenceSkeleton, &TempRawTrackList](int32 BoneIndex, int32 FrameIndex,
-			const FTransform& GlobalTransform, const TArray<FTransform>& GlobalPose)
-		{
-			const int32 ParentIndex = ReferenceSkeleton.GetParentIndex(BoneIndex);
-			const FTransform LocalTransform = ParentIndex == INDEX_NONE
-				? GlobalTransform
-				: GlobalTransform.GetRelativeTransform(GlobalPose[ParentIndex]);
-			TempRawTrackList[BoneIndex].PosKeys[FrameIndex] = FVector3f(LocalTransform.GetLocation());
-			TempRawTrackList[BoneIndex].RotKeys[FrameIndex] = FQuat4f(LocalTransform.GetRotation());
-		};
-
-		for (const FMMD_IKInfo& IKInfo : mmdExtend->IkInfoList)
-		{
-			const FString IKName = IKInfo.IKBoneName.ToString();
-			if ((!IKName.Contains(TEXT("足")) && !IKName.Contains(TEXT("Leg"), ESearchCase::IgnoreCase)) ||
-				IKInfo.IKBoneIndex < 0 || IKInfo.TargetBoneIndex < 0 ||
-				IKInfo.IKBoneIndex >= NumBones || IKInfo.TargetBoneIndex >= NumBones ||
-				IKInfo.ikLinkList.Num() == 0)
-			{
-				continue;
-			}
-
-			TArray<FTransform> GlobalPose;
-			FVector LockedLocation = FVector::ZeroVector;
-			bool bHasLock = false;
-			int32 LockedFrameCount = 0;
-			for (int32 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
-			{
-				BuildGlobalPose(FrameIndex, GlobalPose);
-				const FVector CurrentLocation = GlobalPose[IKInfo.IKBoneIndex].GetLocation();
-				if (!bHasLock || FVector::DistSquared(CurrentLocation, LockedLocation) > FMath::Square(LockDistanceThreshold))
-				{
-					LockedLocation = CurrentLocation;
-					bHasLock = true;
-					continue;
-				}
-
-				FTransform IKGlobal = GlobalPose[IKInfo.IKBoneIndex];
-				IKGlobal.SetLocation(LockedLocation);
-				SetLocalFromGlobal(IKInfo.IKBoneIndex, FrameIndex, IKGlobal, GlobalPose);
-				++LockedFrameCount;
-
-				for (int32 Iteration = 0; Iteration < MaxIterations; ++Iteration)
-				{
-					BuildGlobalPose(FrameIndex, GlobalPose);
-					const FVector EndLocation = GlobalPose[IKInfo.TargetBoneIndex].GetLocation();
-					if (FVector::DistSquared(EndLocation, LockedLocation) <= FMath::Square(0.5f))
-					{
-						break;
-					}
-
-					bool bSolved = false;
-					for (int32 LinkIndex = IKInfo.ikLinkList.Num() - 1; LinkIndex >= 0; --LinkIndex)
-					{
-						const int32 LinkBoneIndex = IKInfo.ikLinkList[LinkIndex].BoneIndex;
-						if (LinkBoneIndex < 0 || LinkBoneIndex >= NumBones)
-						{
-							continue;
-						}
-						const FVector LinkLocation = GlobalPose[LinkBoneIndex].GetLocation();
-						const FVector ToEnd = EndLocation - LinkLocation;
-						const FVector ToTarget = LockedLocation - LinkLocation;
-						if (ToEnd.IsNearlyZero() || ToTarget.IsNearlyZero())
-						{
-							continue;
-						}
-
-						FQuat DeltaRotation = FQuat::FindBetweenNormals(ToEnd.GetSafeNormal(), ToTarget.GetSafeNormal());
-						const float MaxAngle = IKInfo.RotLimit > 0.0f ? IKInfo.RotLimit : PI;
-						const float Angle = DeltaRotation.GetAngle();
-						if (Angle > MaxAngle)
-						{
-							DeltaRotation = FQuat(DeltaRotation.GetRotationAxis(), MaxAngle);
-						}
-
-						FTransform LinkGlobal = GlobalPose[LinkBoneIndex];
-						LinkGlobal.SetRotation(DeltaRotation * LinkGlobal.GetRotation());
-						SetLocalFromGlobal(LinkBoneIndex, FrameIndex, LinkGlobal, GlobalPose);
-						BuildGlobalPose(FrameIndex, GlobalPose);
-						bSolved = true;
-						break;
-					}
-					if (!bSolved)
-					{
-						break;
-					}
-				}
-			}
-
-			if (LockedFrameCount > 0)
-			{
-				UE_LOG(LogMMD4UE4_VMDFactory, Log,
-					TEXT("Baked leg IK foot lock: %s, locked frames=%d/%d"),
-					*IKName, LockedFrameCount, NumFrames);
 			}
 		}
 	}
