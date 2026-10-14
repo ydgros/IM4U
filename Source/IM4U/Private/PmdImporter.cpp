@@ -557,7 +557,8 @@ namespace MMD4UE4
 			}
 			PmxBoneNum = boneData.Count;
 			//确保存储骨骼数据的存储空间
-			pmxMeshInfoPtr->boneList.AddZeroed(PmxBoneNum);
+			// 额外+1：循环会写入索引 [PmxBoneNum]，只分配 PmxBoneNum 会导致数组越界写入
+			pmxMeshInfoPtr->boneList.AddZeroed(PmxBoneNum + offsetBoneIndx);
 
 			// 获取骨骼信息
 			uint32 PmxIKNum = 0;

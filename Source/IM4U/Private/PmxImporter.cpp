@@ -120,10 +120,10 @@ namespace MMD4UE4
 			UE_LOG(LogMMD4UE4_PmxMeshInfo, Error, TEXT("PMX Import FALSE/Return /UnCorrect EncodeType"));
 			return false;
 		}
-		this->modelNameJP		= PMXTexBufferToFString(&Buffer, pmxEncodeType);
-		this->modelNameEng		= PMXTexBufferToFString(&Buffer, pmxEncodeType);
-		this->modelCommentJP	= PMXTexBufferToFString(&Buffer, pmxEncodeType);
-		this->modelCommentEng = PMXTexBufferToFString(&Buffer, pmxEncodeType);
+		this->modelNameJP		= readStringSafe(Buffer, pmxEncodeType);
+		this->modelNameEng		= readStringSafe(Buffer, pmxEncodeType);
+		this->modelCommentJP	= readStringSafe(Buffer, pmxEncodeType);
+		this->modelCommentEng = readStringSafe(Buffer, pmxEncodeType);
 
 		modelNameJP 
 			= modelNameJP.Replace(TEXT("."), TEXT("_"));// [.] is broken filepath for ue4 
@@ -150,18 +150,15 @@ namespace MMD4UE4
 				///
 				//位置(x,y,z)
 				memcopySize = sizeof(pmxVertexPtr.Position);
-				FMemory::Memcpy(&pmxVertexPtr.Position, Buffer, memcopySize);
+				if (!memcpySafe(pmxVertexPtr.Position, Buffer, memcopySize)) { return false; }
 				pmxVertexPtr.Position = ConvertVectorAsixToUE4FromMMD(pmxVertexPtr.Position)*modelScale;
-				Buffer += memcopySize;
 				//法線(x,y,z)
 				memcopySize = sizeof(pmxVertexPtr.Normal);
-				FMemory::Memcpy(&pmxVertexPtr.Normal, Buffer, memcopySize);
+				if (!memcpySafe(pmxVertexPtr.Normal, Buffer, memcopySize)) { return false; }
 				pmxVertexPtr.Normal = ConvertVectorAsixToUE4FromMMD(pmxVertexPtr.Normal);
-				Buffer += memcopySize;
 				//UV(u,v)
 				memcopySize = sizeof(pmxVertexPtr.UV);
-				FMemory::Memcpy(&pmxVertexPtr.UV, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(pmxVertexPtr.UV, Buffer, memcopySize)) { return false; }
 				/*
 				float tempUV = pmxVertexPtr.UV.X;//UE4座標系反転
 				pmxVertexPtr.UV.X = 1 - pmxVertexPtr.UV.Y;
@@ -172,19 +169,17 @@ namespace MMD4UE4
 				{
 					//
 					memcopySize = sizeof(pmxVertexPtr.AddUV[ExUVNum]);
-					FMemory::Memcpy(&pmxVertexPtr.AddUV[ExUVNum], Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(pmxVertexPtr.AddUV[ExUVNum], Buffer, memcopySize)) { return false; }
 				}
 				// 配重变形方式 0:BDEF1 1:BDEF2 2:BDEF4 3:SDEF
 				memcopySize = sizeof(pmxVertexPtr.WeightType);
-				FMemory::Memcpy(&pmxVertexPtr.WeightType, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(pmxVertexPtr.WeightType, Buffer, memcopySize)) { return false; }
 				//
 				if (pmxVertexPtr.WeightType == 0)
 				{
 					statics_bdef1++;
 					//BDEF1
-					pmxVertexPtr.BoneIndex[0] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[0] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[0] ++;
 					pmxVertexPtr.BoneWeight[0] = 1.0f;
 				}
@@ -192,14 +187,13 @@ namespace MMD4UE4
 				{
 					statics_bdef2++;
 					//BDEF2
-					pmxVertexPtr.BoneIndex[0] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[0] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[0] ++;
-					pmxVertexPtr.BoneIndex[1] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[1] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[1] ++;
 					//
 					memcopySize = sizeof(pmxVertexPtr.BoneWeight[0]);
-					FMemory::Memcpy(&pmxVertexPtr.BoneWeight[0], Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(pmxVertexPtr.BoneWeight[0], Buffer, memcopySize)) { return false; }
 					//
 					pmxVertexPtr.BoneWeight[1] = 1.0f - pmxVertexPtr.BoneWeight[0];
 				}
@@ -207,56 +201,51 @@ namespace MMD4UE4
 				{
 					statics_bdef4++;
 					//BDEF4
-					pmxVertexPtr.BoneIndex[0] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[0] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[0] ++;
-					pmxVertexPtr.BoneIndex[1] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[1] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[1] ++;
-					pmxVertexPtr.BoneIndex[2] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[2] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[2] ++;
-					pmxVertexPtr.BoneIndex[3] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[3] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[3] ++;
 					for (int bw = 0; bw < 4; ++bw)
 					{
 						//
 						memcopySize = sizeof(pmxVertexPtr.BoneWeight[bw]);
-						FMemory::Memcpy(&pmxVertexPtr.BoneWeight[bw], Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(pmxVertexPtr.BoneWeight[bw], Buffer, memcopySize)) { return false; }
 					}
 				}
 				else if(pmxVertexPtr.WeightType == 3)
 				{
 					statics_sdef++;
 					//SDEF
-					pmxVertexPtr.BoneIndex[0] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[0] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[0] ++;
-					pmxVertexPtr.BoneIndex[1] = MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+					pmxVertexPtr.BoneIndex[1] = readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					pmxVertexPtr.BoneIndex[1] ++;
 					//
 					memcopySize = sizeof(pmxVertexPtr.BoneWeight[0]);
-					FMemory::Memcpy(&pmxVertexPtr.BoneWeight[0], Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(pmxVertexPtr.BoneWeight[0], Buffer, memcopySize)) { return false; }
 					pmxVertexPtr.BoneWeight[1] = 1.0f - pmxVertexPtr.BoneWeight[0];
 
 					for (int bw = 0; bw < 1; ++bw)
 					{
 						//
 						memcopySize = sizeof(pmxVertexPtr.SDEF_C);
-						FMemory::Memcpy(&pmxVertexPtr.SDEF_C, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(pmxVertexPtr.SDEF_C, Buffer, memcopySize)) { return false; }
 					}
 					for (int bw = 0; bw < 1; ++bw)
 					{
 						//
 						memcopySize = sizeof(pmxVertexPtr.SDEF_R0);
-						FMemory::Memcpy(&pmxVertexPtr.SDEF_R0, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(pmxVertexPtr.SDEF_R0, Buffer, memcopySize)) { return false; }
 					}
 					for (int bw = 0; bw < 1; ++bw)
 					{
 						//
 						memcopySize = sizeof(pmxVertexPtr.SDEF_R1);
-						FMemory::Memcpy(&pmxVertexPtr.SDEF_R1, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(pmxVertexPtr.SDEF_R1, Buffer, memcopySize)) { return false; }
 					}
 				}
 				else
@@ -265,8 +254,7 @@ namespace MMD4UE4
 				}
 				//边缘倍率材质相对于边缘尺寸的倍率值
 				memcopySize = sizeof(pmxVertexPtr.ToonEdgeScale);
-				FMemory::Memcpy(&pmxVertexPtr.ToonEdgeScale, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(pmxVertexPtr.ToonEdgeScale, Buffer, memcopySize)) { return false; }
 			}
 			UE_LOG(LogMMD4UE4_PmxMeshInfo, Warning,
 				TEXT("PMX Import [Vertex:: statics bone type, bdef1 = %u] Complete"), statics_bdef1);
@@ -308,7 +296,7 @@ namespace MMD4UE4
 				for (int SubNum = 0; SubNum < 3; ++SubNum)
 				{
 					pmxFaseListPtr.VertexIndex[SubNum] 
-						= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.VertexIndexSize);
+						= readIndexSafe(Buffer, this->baseHeader.VertexIndexSize);
 				}
 			}
 		}
@@ -331,7 +319,7 @@ namespace MMD4UE4
 			// 获取纹理信息
 			for (uint32 i = 0; i < PmxTextureNum; i++)
 			{
-				textureList[i].TexturePath = PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				textureList[i].TexturePath = readStringSafe(Buffer, pmxEncodeType);
 			}
 			UE_LOG(LogMMD4UE4_PmxMeshInfo, Warning, TEXT("PMX Import [textureList] Complete"));
 		}
@@ -353,25 +341,21 @@ namespace MMD4UE4
 			{
 				// 材质名称的取得
 				//materialList[i].Name = PMXTexBufferToFString(&Buffer, pmxEncodeType);
-				materialList[i].Name = FString::Printf(TEXT("%d_%s"), i, *PMXTexBufferToFString(&Buffer, pmxEncodeType));
-				materialList[i].NameEng = PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				materialList[i].Name = FString::Printf(TEXT("%d_%s"), i, *readStringSafe(Buffer, pmxEncodeType));
+				materialList[i].NameEng = readStringSafe(Buffer, pmxEncodeType);
 
 				//Diffuse (R,G,B,A)
 				memcopySize = sizeof(materialList[i].Diffuse);
-				FMemory::Memcpy(materialList[i].Diffuse, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].Diffuse, Buffer, memcopySize)) { return false; }
 				//Specular (R,G,B)
 				memcopySize = sizeof(materialList[i].Specular);
-				FMemory::Memcpy(materialList[i].Specular, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].Specular, Buffer, memcopySize)) { return false; }
 				//Specular係数
 				memcopySize = sizeof(materialList[i].SpecularPower);
-				FMemory::Memcpy(&materialList[i].SpecularPower, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].SpecularPower, Buffer, memcopySize)) { return false; }
 				//Ambient (R,G,B)
 				memcopySize = sizeof(materialList[i].Ambient);
-				FMemory::Memcpy(materialList[i].Ambient, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].Ambient, Buffer, memcopySize)) { return false; }
 
 				/*
 				描绘标志（8bit）-各bit0:OFF 1:ON
@@ -379,8 +363,7 @@ namespace MMD4UE4
 				*/
 				uint8 tempByte = 0;
 				memcopySize = sizeof(tempByte);
-				FMemory::Memcpy(&tempByte, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(tempByte, Buffer, memcopySize)) { return false; }
 				materialList[i].CullingOff = (tempByte & 0x01) ? 1 : 0;
 				materialList[i].GroundShadow = (tempByte & 0x02) ? 1 : 0;
 				materialList[i].SelfShadowMap = (tempByte & 0x04) ? 1 : 0;
@@ -389,47 +372,41 @@ namespace MMD4UE4
 
 				//边缘颜色 (R,G,B,A)
 				memcopySize = sizeof(materialList[i].EdgeColor);
-				FMemory::Memcpy(materialList[i].EdgeColor, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].EdgeColor, Buffer, memcopySize)) { return false; }
 
 				//边缘大小
 				memcopySize = sizeof(materialList[i].EdgeSize);
-				FMemory::Memcpy(&materialList[i].EdgeSize, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].EdgeSize, Buffer, memcopySize)) { return false; }
 				//纹理，纹理表参考索引
 				materialList[i].TextureIndex
-					= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.TextureIndexSize);
+					= readIndexSafe(Buffer, this->baseHeader.TextureIndexSize);
 				//球形纹理，纹理表参照Index※纹理扩展名无限制
 				materialList[i].SphereTextureIndex 
-					= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.TextureIndexSize);
+					= readIndexSafe(Buffer, this->baseHeader.TextureIndexSize);
 				//球形模式0:无效1:乘法（sph）2:加法（spa）
 				//3:子纹理（通过参考UV1中的x，y进行常规纹理绘制）
 				memcopySize = sizeof(materialList[i].SphereMode);
-				FMemory::Memcpy(&materialList[i].SphereMode, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].SphereMode, Buffer, memcopySize)) { return false; }
 				//共享Toon标志0：单独Toon1:共享连续值Toon
 				memcopySize = sizeof(materialList[i].ToonFlag);
-				FMemory::Memcpy(&materialList[i].ToonFlag, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].ToonFlag, Buffer, memcopySize)) { return false; }
 
 				if (materialList[i].ToonFlag == 0)
 				{//Toon纹理，纹理表参考索引
 					materialList[i].ToonTextureIndex 
-						= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.TextureIndexSize);
+						= readIndexSafe(Buffer, this->baseHeader.TextureIndexSize);
 				}
 				else
 				{//共享Toon纹理[0-9]->分别支持toon01.bmp～toon10.bmp
 					memcopySize = sizeof(uint8);
-					FMemory::Memcpy(&materialList[i].ToonTextureIndex, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(materialList[i].ToonTextureIndex, Buffer, memcopySize)) { return false; }
 				}
 
 				// 跳过注释
-				PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				readStringSafe(Buffer, pmxEncodeType);
 				//材质对应的面（顶点）数（一定是3的倍数）
 				memcopySize = sizeof(materialList[i].MaterialFaceNum);
-				FMemory::Memcpy(&materialList[i].MaterialFaceNum, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(materialList[i].MaterialFaceNum, Buffer, memcopySize)) { return false; }
 			}
 			UE_LOG(LogMMD4UE4_PmxMeshInfo, Warning, TEXT("PMX Import [materialList] Complete"));
 		}
@@ -462,7 +439,9 @@ namespace MMD4UE4
 			}
 
 			// 确保存储骨骼数据的存储空间
-			boneList.AddZeroed(PmxBoneNum);
+			// 额外+1：循环与前置写入会使用索引 [PmxBoneNum]（追加的AllTopRootBone），
+			// 只分配 PmxBoneNum 会导致数组越界写入
+			boneList.AddZeroed(PmxBoneNum + offsetBoneIndex);
 
 			// 获取骨骼信息
 			uint32 PmxIKNum = 0;
@@ -470,27 +449,24 @@ namespace MMD4UE4
 			{
 
 				boneList[i].Name
-					= PMXTexBufferToFString(&Buffer, pmxEncodeType);
+					= readStringSafe(Buffer, pmxEncodeType);
 				boneList[i].NameEng
-					= PMXTexBufferToFString(&Buffer, pmxEncodeType);
+					= readStringSafe(Buffer, pmxEncodeType);
 				//
 				memcopySize = sizeof(boneList[i].Position);
-				FMemory::Memcpy(&boneList[i].Position, Buffer, memcopySize);
+				if (!memcpySafe(boneList[i].Position, Buffer, memcopySize)) { return false; }
 				boneList[i].Position = ConvertVectorAsixToUE4FromMMD(boneList[i].Position) *modelScale;
-				Buffer += memcopySize;
 
 				boneList[i].ParentBoneIndex
-					= MMDExtendBufferSizeToInt32(&Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
+					= readIndexIntSafe(Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
 				//
 				memcopySize = sizeof(boneList[i].TransformLayer);
-				FMemory::Memcpy(&boneList[i].TransformLayer, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(boneList[i].TransformLayer, Buffer, memcopySize)) { return false; }
 
 				uint16 Flag;
 				//
 				memcopySize = sizeof(Flag);
-				FMemory::Memcpy(&Flag, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(Flag, Buffer, memcopySize)) { return false; }
 
 				boneList[i].Flag_LinkDest = (Flag & 0x0001) != 0 ? 1 : 0;
 				boneList[i].Flag_EnableRot = (Flag & 0x0002) != 0 ? 1 : 0;
@@ -509,32 +485,29 @@ namespace MMD4UE4
 				{
 					//
 					memcopySize = sizeof(boneList[i].OffsetPosition);
-					FMemory::Memcpy(&boneList[i].OffsetPosition, Buffer, memcopySize);
+					if (!memcpySafe(boneList[i].OffsetPosition, Buffer, memcopySize)) { return false; }
 					boneList[i].OffsetPosition = ConvertVectorAsixToUE4FromMMD(boneList[i].OffsetPosition) *modelScale;
-					Buffer += memcopySize;
 				}
 				else
 				{
 					boneList[i].LinkBoneIndex
-						= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+						= readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 				}
 
 				if (boneList[i].Flag_AddRot == 1 || boneList[i].Flag_AddMov == 1)
 				{
 					boneList[i].AddParentBoneIndex
-						= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize);
+						= readIndexSafe(Buffer, this->baseHeader.BoneIndexSize);
 					//
 					memcopySize = sizeof(boneList[i].AddRatio);
-					FMemory::Memcpy(&boneList[i].AddRatio, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].AddRatio, Buffer, memcopySize)) { return false; }
 				}
 
 				if (boneList[i].Flag_LockAxis == 1)
 				{
 					//
 					memcopySize = sizeof(boneList[i].LockAxisVector);
-					FMemory::Memcpy(&boneList[i].LockAxisVector, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].LockAxisVector, Buffer, memcopySize)) { return false; }
 				}
 
 				if (boneList[i].Flag_LocalAxis == 1)
@@ -542,21 +515,18 @@ namespace MMD4UE4
 
 					//
 					memcopySize = sizeof(boneList[i].LocalAxisXVector);
-					FMemory::Memcpy(&boneList[i].LocalAxisXVector, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].LocalAxisXVector, Buffer, memcopySize)) { return false; }
 
 					//
 					memcopySize = sizeof(boneList[i].LocalAxisZVector);
-					FMemory::Memcpy(&boneList[i].LocalAxisZVector, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].LocalAxisZVector, Buffer, memcopySize)) { return false; }
 				}
 
 				if (boneList[i].Flag_OutParentTransform == 1)
 				{
 					//
 					memcopySize = sizeof(boneList[i].OutParentTransformKey);
-					FMemory::Memcpy(&boneList[i].OutParentTransformKey, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].OutParentTransformKey, Buffer, memcopySize)) { return false; }
 				}
 
 				if (boneList[i].Flag_IK == 1)
@@ -564,23 +534,20 @@ namespace MMD4UE4
 					PmxIKNum++;
 
 					boneList[i].IKInfo.TargetBoneIndex
-						= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
+						= readIndexSafe(Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
 					//
 					memcopySize = sizeof(boneList[i].IKInfo.LoopNum);
-					FMemory::Memcpy(&boneList[i].IKInfo.LoopNum, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].IKInfo.LoopNum, Buffer, memcopySize)) { return false; }
 
 					//
 					memcopySize = sizeof(boneList[i].IKInfo.RotLimit);
-					FMemory::Memcpy(&boneList[i].IKInfo.RotLimit, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].IKInfo.RotLimit, Buffer, memcopySize)) { return false; }
 					//fix to Dig From rad(pmx) for vmd ik
 					boneList[i].IKInfo.RotLimit = FMath::RadiansToDegrees(boneList[i].IKInfo.RotLimit);
 
 					//
 					memcopySize = sizeof(boneList[i].IKInfo.LinkNum);
-					FMemory::Memcpy(&boneList[i].IKInfo.LinkNum, Buffer, memcopySize);
-					Buffer += memcopySize;
+					if (!memcpySafe(boneList[i].IKInfo.LinkNum, Buffer, memcopySize)) { return false; }
 					if (boneList[i].IKInfo.LinkNum >= PMX_MAX_IKLINKNUM)
 					{
 						return false;
@@ -589,19 +556,17 @@ namespace MMD4UE4
 					for (int32 j = 0; j < boneList[i].IKInfo.LinkNum; j++)
 					{
 						boneList[i].IKInfo.Link[j].BoneIndex
-							= MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
+							= readIndexSafe(Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
 						//
 						memcopySize = sizeof(boneList[i].IKInfo.Link[j].RotLockFlag);
-						FMemory::Memcpy(&boneList[i].IKInfo.Link[j].RotLockFlag, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(boneList[i].IKInfo.Link[j].RotLockFlag, Buffer, memcopySize)) { return false; }
 
 						if (boneList[i].IKInfo.Link[j].RotLockFlag == 1)
 						{
 							FVector3f tempVecRot;
 							//
 							memcopySize = sizeof(boneList[i].IKInfo.Link[j].RotLockMin);
-							FMemory::Memcpy(&boneList[i].IKInfo.Link[j].RotLockMin[0], Buffer, memcopySize);
-							Buffer += memcopySize;
+							if (!memcpySafe(boneList[i].IKInfo.Link[j].RotLockMin, Buffer, memcopySize)) { return false; }
 							tempVecRot = FVector3f(
 								boneList[i].IKInfo.Link[j].RotLockMin[0],
 								boneList[i].IKInfo.Link[j].RotLockMin[1],
@@ -617,8 +582,7 @@ namespace MMD4UE4
 								= FMath::RadiansToDegrees(tempVecRot.Z);
 							//
 							memcopySize = sizeof(boneList[i].IKInfo.Link[j].RotLockMax);
-							FMemory::Memcpy(&boneList[i].IKInfo.Link[j].RotLockMax[0], Buffer, memcopySize);
-							Buffer += memcopySize;
+							if (!memcpySafe(boneList[i].IKInfo.Link[j].RotLockMax, Buffer, memcopySize)) { return false; }
 							tempVecRot = FVector3f(
 								boneList[i].IKInfo.Link[j].RotLockMax[0],
 								boneList[i].IKInfo.Link[j].RotLockMax[1],
@@ -659,23 +623,21 @@ namespace MMD4UE4
 			for (i = 0; i < PmxMorphNum; i++)
 			{
 				morphList[i].Name
-					= PMXTexBufferToFString(&Buffer, pmxEncodeType);
+					= readStringSafe(Buffer, pmxEncodeType);
 				morphList[i].NameEng
-					= PMXTexBufferToFString(&Buffer, pmxEncodeType);
+					= readStringSafe(Buffer, pmxEncodeType);
 
 				//
 				memcopySize = sizeof(morphList[i].ControlPanel);
-				FMemory::Memcpy(&morphList[i].ControlPanel, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(morphList[i].ControlPanel, Buffer, memcopySize)) { return false; }
 				//
 				memcopySize = sizeof(morphList[i].Type);
-				FMemory::Memcpy(&morphList[i].Type, Buffer, memcopySize);
-				Buffer += memcopySize;
+				if (!memcpySafe(morphList[i].Type, Buffer, memcopySize)) { return false; }
 				//
 				memcopySize = sizeof(morphList[i].DataNum);
-				FMemory::Memcpy(&morphList[i].DataNum, Buffer, memcopySize);
-				Buffer += memcopySize;
-				if (morphList[i].DataNum < 0)
+				if (!memcpySafe(morphList[i].DataNum, Buffer, memcopySize)) { return false; }
+				if (morphList[i].DataNum < 0 ||
+					static_cast<uint64>(morphList[i].DataNum) > static_cast<uint64>(BufferEnd - Buffer))
 				{
 					return false;
 				}
@@ -688,11 +650,10 @@ namespace MMD4UE4
 					for (j = 0; j < morphList[i].DataNum; j++)
 					{
 						morphList[i].Group[j].Index =
-							MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.MorphIndexSize);
+							readIndexSafe(Buffer, this->baseHeader.MorphIndexSize);
 						//
 						memcopySize = sizeof(morphList[i].Group[j].Ratio);
-						FMemory::Memcpy(&morphList[i].Group[j].Ratio, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Group[j].Ratio, Buffer, memcopySize)) { return false; }
 					}
 					break;
 
@@ -703,12 +664,11 @@ namespace MMD4UE4
 					for (j = 0; j < morphList[i].DataNum; j++)
 					{
 						morphList[i].Vertex[j].Index =
-							MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.VertexIndexSize);
+							readIndexSafe(Buffer, this->baseHeader.VertexIndexSize);
 						//
 						memcopySize = sizeof(morphList[i].Vertex[j].Offset);
-						FMemory::Memcpy(&morphList[i].Vertex[j].Offset, Buffer, memcopySize);
+						if (!memcpySafe(morphList[i].Vertex[j].Offset, Buffer, memcopySize)) { return false; }
 						morphList[i].Vertex[j].Offset = ConvertVectorAsixToUE4FromMMD(morphList[i].Vertex[j].Offset)*modelScale;
-Buffer += memcopySize;
 					}
 					break;
 
@@ -718,16 +678,14 @@ Buffer += memcopySize;
 					for (j = 0; j < morphList[i].DataNum; j++)
 					{
 						morphList[i].Bone[j].Index =
-							MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
+							readIndexSafe(Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
 						//
 						memcopySize = sizeof(morphList[i].Bone[j].Offset);
-						FMemory::Memcpy(&morphList[i].Bone[j].Offset, Buffer, memcopySize);
+						if (!memcpySafe(morphList[i].Bone[j].Offset, Buffer, memcopySize)) { return false; }
 						morphList[i].Bone[j].Offset = ConvertVectorAsixToUE4FromMMD(morphList[i].Bone[j].Offset) * modelScale;
-						Buffer += memcopySize;
 						//
 						memcopySize = sizeof(morphList[i].Bone[j].Quat);
-						FMemory::Memcpy(&morphList[i].Bone[j].Quat, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Bone[j].Quat, Buffer, memcopySize)) { return false; }
 					}
 					break;
 
@@ -741,11 +699,10 @@ Buffer += memcopySize;
 					for (j = 0; j < morphList[i].DataNum; j++)
 					{
 						morphList[i].UV[j].Index =
-							MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.VertexIndexSize);
+							readIndexSafe(Buffer, this->baseHeader.VertexIndexSize);
 						//
 						memcopySize = sizeof(morphList[i].UV[j].Offset);
-						FMemory::Memcpy(&morphList[i].UV[j].Offset, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].UV[j].Offset, Buffer, memcopySize)) { return false; }
 					}
 					break;
 
@@ -755,52 +712,42 @@ Buffer += memcopySize;
 					for (j = 0; j < morphList[i].DataNum; j++)
 					{
 						morphList[i].Material[j].Index =
-							MMDExtendBufferSizeToUint32(&Buffer, this->baseHeader.MaterialIndexSize);
+							readIndexSafe(Buffer, this->baseHeader.MaterialIndexSize);
 						//
 						memcopySize = sizeof(morphList[i].Material[j].CalcType);
-						FMemory::Memcpy(&morphList[i].Material[j].CalcType, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].CalcType, Buffer, memcopySize)) { return false; }
 
 						//
 						memcopySize = sizeof(morphList[i].Material[j].Diffuse);
-						FMemory::Memcpy(&morphList[i].Material[j].Diffuse, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].Diffuse, Buffer, memcopySize)) { return false; }
 						//
 						memcopySize = sizeof(morphList[i].Material[j].Specular);
-						FMemory::Memcpy(&morphList[i].Material[j].Specular, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].Specular, Buffer, memcopySize)) { return false; }
 						//
 						memcopySize = sizeof(morphList[i].Material[j].SpecularPower);
-						FMemory::Memcpy(&morphList[i].Material[j].SpecularPower, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].SpecularPower, Buffer, memcopySize)) { return false; }
 						//
 						memcopySize = sizeof(morphList[i].Material[j].Ambient);
-						FMemory::Memcpy(&morphList[i].Material[j].Ambient, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].Ambient, Buffer, memcopySize)) { return false; }
 
 						//
 						memcopySize = sizeof(morphList[i].Material[j].EdgeColor);
-						FMemory::Memcpy(&morphList[i].Material[j].EdgeColor, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].EdgeColor, Buffer, memcopySize)) { return false; }
 
 						//
 						memcopySize = sizeof(morphList[i].Material[j].EdgeSize);
-						FMemory::Memcpy(&morphList[i].Material[j].EdgeSize, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].EdgeSize, Buffer, memcopySize)) { return false; }
 
 						//
 						memcopySize = sizeof(morphList[i].Material[j].TextureScale);
-						FMemory::Memcpy(&morphList[i].Material[j].TextureScale, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].TextureScale, Buffer, memcopySize)) { return false; }
 
 						//
 						memcopySize = sizeof(morphList[i].Material[j].SphereTextureScale);
-						FMemory::Memcpy(&morphList[i].Material[j].SphereTextureScale, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].SphereTextureScale, Buffer, memcopySize)) { return false; }
 						//
 						memcopySize = sizeof(morphList[i].Material[j].ToonTextureScale);
-						FMemory::Memcpy(&morphList[i].Material[j].ToonTextureScale, Buffer, memcopySize);
-						Buffer += memcopySize;
+						if (!memcpySafe(morphList[i].Material[j].ToonTextureScale, Buffer, memcopySize)) { return false; }
 
 					}
 					break;
@@ -828,8 +775,8 @@ Buffer += memcopySize;
 			//int32 PmxSkinNum = 0;
 			for (int32 i = 0; i < PmxMorphNum; ++i)
 			{
-				FString name = PMXTexBufferToFString(&Buffer, pmxEncodeType);
-				FString nameEng	= PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				FString name = readStringSafe(Buffer, pmxEncodeType);
+				FString nameEng	= readStringSafe(Buffer, pmxEncodeType);
 				uint8 frameFlag = 0;
 				readBuffer(frameFlag);
 				if (frameFlag > 1 || bReadError)
@@ -884,11 +831,11 @@ Buffer += memcopySize;
 			for (int32 i = 0; i < rbNum; ++i)
 			{
 				PMX_RIGIDBODY &rb = rigidList[i];
-				rb.Name = PMXTexBufferToFString(&Buffer, pmxEncodeType);
-				rb.NameEng = PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				rb.Name = readStringSafe(Buffer, pmxEncodeType);
+				rb.NameEng = readStringSafe(Buffer, pmxEncodeType);
 
 				//UE_LOG print this->baseHeader.BoneIndexSize
-				rb.BoneIndex = MMDExtendBufferSizeToInt32(&Buffer, this->baseHeader.BoneIndexSize)+ offsetBoneIndex;
+				rb.BoneIndex = readIndexIntSafe(Buffer, this->baseHeader.BoneIndexSize) + offsetBoneIndex;
 				UE_LOG(LogMMD4UE4_PmxMeshInfo, Warning, TEXT("PMX Import [RigidBody] BoneIndexSize %d"), rb.BoneIndex);
 				if (!boneList.IsValidIndex(static_cast<int32>(rb.BoneIndex)))
 				{
@@ -932,12 +879,12 @@ Buffer += memcopySize;
 			for (int32 i = 0; i < jointNum; ++i)
 			{
 				PMX_JOINT& joint = jointList[i];
-				joint.Name = PMXTexBufferToFString(&Buffer, pmxEncodeType);
-				PMXTexBufferToFString(&Buffer, pmxEncodeType);
+				joint.Name = readStringSafe(Buffer, pmxEncodeType);
+				readStringSafe(Buffer, pmxEncodeType);
 				joint.Type = 0;
 				readBuffer(joint.Type);
-				joint.RigidBodyAIndex = MMDExtendBufferSizeToInt32(&Buffer, this->baseHeader.RigidIndexSize);
-				joint.RigidBodyBIndex = MMDExtendBufferSizeToInt32(&Buffer, this->baseHeader.RigidIndexSize);
+				joint.RigidBodyAIndex = readIndexIntSafe(Buffer, this->baseHeader.RigidIndexSize);
+				joint.RigidBodyBIndex = readIndexIntSafe(Buffer, this->baseHeader.RigidIndexSize);
 				readBuffer(joint.Position);
 				joint.Position = ConvertVectorAsixToUE4FromMMD(joint.Position) * modelScale;
 				readBuffer(joint.Rotation);

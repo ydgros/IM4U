@@ -297,6 +297,42 @@ namespace MMD4UE4
 			const uint8 *& Buffer,
 			const uint8 * InBufferEnd
 			);
+
+		/* 带边界检查的读取包装：越界时置 bReadError，避免截断/损坏文件越界崩溃 */
+		template <typename T>
+		bool memcpySafe(T& destination, const uint8*& buffer, uint64 size)
+		{
+			bool bOutOfRange = bReadError;
+			const bool bOk = MemcpyFromBufferSafe(
+				&destination, &buffer, BufferEnd, size, bOutOfRange);
+			bReadError = bOutOfRange;
+			return bOk;
+		}
+		uint32 readIndexSafe(const uint8*& buffer, uint8 indexSize)
+		{
+			bool bOutOfRange = bReadError;
+			const uint32 value = MMDExtendBufferSizeToUint32Safe(
+				&buffer, BufferEnd, indexSize, bOutOfRange);
+			bReadError = bOutOfRange;
+			return value;
+		}
+		int32 readIndexIntSafe(const uint8*& buffer, uint8 indexSize)
+		{
+			bool bOutOfRange = bReadError;
+			const int32 value = MMDExtendBufferSizeToInt32Safe(
+				&buffer, BufferEnd, indexSize, bOutOfRange);
+			bReadError = bOutOfRange;
+			return value;
+		}
+		FString readStringSafe(const uint8*& buffer, PMXEncodeType encodeType)
+		{
+			bool bOutOfRange = bReadError;
+			const FString value = PMXTexBufferToFStringSafe(
+				&buffer, BufferEnd, encodeType, bOutOfRange);
+			bReadError = bOutOfRange;
+			return value;
+		}
+
 		template <typename T>
 		bool readBuffer(T& var) {
 			size_t memcopySize = sizeof(var);

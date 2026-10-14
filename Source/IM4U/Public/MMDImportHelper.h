@@ -69,5 +69,42 @@ namespace MMD4UE4
 			const uint8 ** buffer,
 			const uint8  blockSize
 			);
+
+		/////////////////////////////////////
+		// 带边界检查的读取：越界时置bOutOfRange并返回0，不再推进指针
+		// 供PMX/PMD/VMD二进制解析使用，避免截断文件导致越界读取崩溃
+		//////////////////////////////////////
+		static uint32 MMDExtendBufferSizeToUint32Safe(
+			const uint8 ** buffer,
+			const uint8 *  bufferEnd,
+			const uint8    blockSize,
+			bool &         bOutOfRange
+			);
+		static int32 MMDExtendBufferSizeToInt32Safe(
+			const uint8 ** buffer,
+			const uint8 *  bufferEnd,
+			const uint8    blockSize,
+			bool &         bOutOfRange
+			);
+		/////////////////////////////////////
+		// 带边界检查的原始拷贝：越界时置bOutOfRange并返回false
+		//////////////////////////////////////
+		static bool MemcpyFromBufferSafe(
+			void *         destination,
+			const uint8 ** buffer,
+			const uint8 *  bufferEnd,
+			const uint64   size,
+			bool &         bOutOfRange
+			);
+		/////////////////////////////////////
+		// 带边界检查的字符串读取：先读长度再读数据，任何一步越界都置bOutOfRange
+		// 避免损坏文件中的巨大长度导致巨额分配或越界读取崩溃
+		//////////////////////////////////////
+		static FString PMXTexBufferToFStringSafe(
+			const uint8 ** buffer,
+			const uint8 *  bufferEnd,
+			PMXEncodeType  encodeType,
+			bool &         bOutOfRange
+			);
 	};
 }

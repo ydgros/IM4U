@@ -107,4 +107,89 @@ namespace MMD4UE4
 		}
 		return static_cast<int32>(tmp);
 	}
+
+	uint32 MMDImportHelper::MMDExtendBufferSizeToUint32Safe(
+		const uint8 ** buffer,
+		const uint8 *  bufferEnd,
+		const uint8    blockSize,
+		bool &         bOutOfRange
+		)
+	{
+		if (bOutOfRange || buffer == nullptr || *buffer == nullptr ||
+			bufferEnd == nullptr || *buffer > bufferEnd ||
+			static_cast<uint64>(blockSize) > static_cast<uint64>(bufferEnd - *buffer))
+		{
+			bOutOfRange = true;
+			return 0;
+		}
+		return MMDExtendBufferSizeToUint32(buffer, blockSize);
+	}
+
+	int32 MMDImportHelper::MMDExtendBufferSizeToInt32Safe(
+		const uint8 ** buffer,
+		const uint8 *  bufferEnd,
+		const uint8    blockSize,
+		bool &         bOutOfRange
+		)
+	{
+		if (bOutOfRange || buffer == nullptr || *buffer == nullptr ||
+			bufferEnd == nullptr || *buffer > bufferEnd ||
+			static_cast<uint64>(blockSize) > static_cast<uint64>(bufferEnd - *buffer))
+		{
+			bOutOfRange = true;
+			return 0;
+		}
+		return MMDExtendBufferSizeToInt32(buffer, blockSize);
+	}
+
+	bool MMDImportHelper::MemcpyFromBufferSafe(
+		void *         destination,
+		const uint8 ** buffer,
+		const uint8 *  bufferEnd,
+		const uint64   size,
+		bool &         bOutOfRange
+		)
+	{
+		if (bOutOfRange || buffer == nullptr || *buffer == nullptr ||
+			bufferEnd == nullptr || *buffer > bufferEnd ||
+			size > static_cast<uint64>(bufferEnd - *buffer))
+		{
+			bOutOfRange = true;
+			return false;
+		}
+		if (destination != nullptr && size > 0)
+		{
+			FMemory::Memcpy(destination, *buffer, static_cast<SIZE_T>(size));
+		}
+		*buffer += size;
+		return true;
+	}
+
+	FString MMDImportHelper::PMXTexBufferToFStringSafe(
+		const uint8 ** buffer,
+		const uint8 *  bufferEnd,
+		PMXEncodeType  encodeType,
+		bool &         bOutOfRange
+		)
+	{
+		if (bOutOfRange || buffer == nullptr || *buffer == nullptr ||
+			bufferEnd == nullptr || *buffer > bufferEnd ||
+			static_cast<uint64>(sizeof(uint32)) > static_cast<uint64>(bufferEnd - *buffer))
+		{
+			bOutOfRange = true;
+			return FString();
+		}
+
+		uint32 size = 0;
+		FMemory::Memcpy(&size, *buffer, sizeof(uint32));
+
+		// 剩余数据的长度硬上限：字符串长度不得超过缓冲区剩余字节数
+		if (static_cast<uint64>(size) > static_cast<uint64>(bufferEnd - (*buffer + sizeof(uint32))))
+		{
+			bOutOfRange = true;
+			return FString();
+		}
+
+		return PMXTexBufferToFString(buffer, encodeType);
+	}
 }
