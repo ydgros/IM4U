@@ -1,6 +1,13 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #pragma once
-#include "SlateBasics.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PmxImportUI.h"
 

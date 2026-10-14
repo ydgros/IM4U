@@ -1,6 +1,10 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #pragma once
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
+#include "Engine/Texture.h"
 #include "PmxImporter.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCategoryPMXMaterialImport, Log, All)

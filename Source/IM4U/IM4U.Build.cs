@@ -19,6 +19,12 @@ namespace UnrealBuildTool.Rules
 		
 		public IM4U(ReadOnlyTargetRules Target) : base(Target)
 		{
+			// 使用引擎预编译头（与MMDCameraImporter一致），显著减少重复解析引擎头的时间
+			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
+			// 保持Unity构建开启以提高编译吞吐；若需排查头文件依赖可临时设为false
+			bUseUnity = true;
+
 			//string LibName; //not used
 			/*if ((Target.Platform == UnrealTargetPlatform.Win64 ))
 			{
@@ -40,6 +46,9 @@ namespace UnrealBuildTool.Rules
 				}
                 );
 
+			// 仅保留公共头文件真正需要的依赖。
+			// AssetTools/MainFrame/PropertyEditor/ContentBrowser/IKRigEditor 等仅在 .cpp 中使用，
+			// 移到 PrivateDependencyModuleNames 可减少对外传播并缩短依赖编译时间。
 			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
@@ -47,20 +56,27 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
 					"Engine", 
 					"InputCore", 
-					"AssetTools",
 					"Slate" ,
 					"SlateCore",
-					"RawMesh" ,
+					"AssetRegistry",
+					"PhysicsUtilities","SkeletalMeshUtilitiesCommon"
+					// ... add other public dependencies that you statically link with here ...
+				}
+				);
+
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"AssetTools",
+					"RawMesh",
 					"MessageLog",
 					"MainFrame",
 					"PropertyEditor",
-                    "RHI",
-                    "RenderCore",
-                    "ContentBrowser",
-					"PhysicsUtilities","SkeletalMeshUtilitiesCommon",
-                    "IKRig",
+					"RHI",
+					"RenderCore",
+					"ContentBrowser",
+					"IKRig",
 					"IKRigEditor"
-					// ... add other public dependencies that you statically link with here ...
 				}
 				);
 
@@ -90,7 +106,6 @@ namespace UnrealBuildTool.Rules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[]
                 {
-                    "AssetRegistry",
 					// ... add any modules that your module loads dynamically here ...
 				}
 				);

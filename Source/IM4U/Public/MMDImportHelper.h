@@ -1,6 +1,6 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #pragma once
-#include "Engine.h"
+#include "CoreMinimal.h"
 
 namespace MMD4UE4
 {

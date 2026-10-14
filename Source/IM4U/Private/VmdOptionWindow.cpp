@@ -3,6 +3,7 @@
 #include "PropertyEditorModule.h"
 #include "IDocumentation.h"
 #include "IDetailsView.h"
+#include "Styling/AppStyle.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "VMDOption"

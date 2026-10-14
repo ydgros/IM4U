@@ -2,6 +2,7 @@
 #include "PmxOptionWindow.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
+#include "Styling/AppStyle.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 

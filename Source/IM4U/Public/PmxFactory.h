@@ -1,8 +1,9 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #pragma once
-#include "Engine.h"
-#include "Factories/Factory.h"
 #include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Factories/Factory.h"
 #include "Runtime/Core/Public/Logging/TokenizedMessage.h"
 #include "ImportUtils/SkelImport.h"
 #include "PmxImporter.h"

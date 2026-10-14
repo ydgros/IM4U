@@ -1,12 +1,11 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
-#include "MainFrame.h"
-#include "StructUtils/UserDefinedStruct.h"
-#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
 
 //DEFINE_LOG_CATEGORY(LogVMDImportFactory);
 
+// 说明：以下内容整段被 #if 0 禁用（历史遗留的CSV/DataTable导入UI）。
+// 为减少无用的头文件解析，这里不再 include MainFrame/IDataTableEditor 等重型头文件。
 #if 0
 /** Enum to indicate what to import CSV as */
 enum EVMDImportType
