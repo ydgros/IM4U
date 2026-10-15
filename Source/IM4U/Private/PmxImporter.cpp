@@ -439,9 +439,9 @@ namespace MMD4UE4
 			}
 
 			// 确保存储骨骼数据的存储空间
-			// 额外+1：循环与前置写入会使用索引 [PmxBoneNum]（追加的AllTopRootBone），
-			// 只分配 PmxBoneNum 会导致数组越界写入
-			boneList.AddZeroed(PmxBoneNum + offsetBoneIndex);
+			// 索引0已在上方作为Root分配；此处仅追加剩余的 PmxBoneNum 个骨骼，
+			// 循环填充索引 1..PmxBoneNum，总数为 1 + PmxBoneNum
+			boneList.AddZeroed(PmxBoneNum);
 
 			// 获取骨骼信息
 			uint32 PmxIKNum = 0;
