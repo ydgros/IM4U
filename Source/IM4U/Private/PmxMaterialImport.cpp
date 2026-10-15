@@ -1226,6 +1226,7 @@ UMaterialInterface* UPmxMaterialImport::DuplicateBaseMaterial(
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Normal;
 	}
+	/*
 	else if (EDuplicateBaseMatTypeIndex::E_DupBaseMat_Typ_Luminous == targetMatIndex)
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Luminou;
@@ -1238,6 +1239,7 @@ UMaterialInterface* UPmxMaterialImport::DuplicateBaseMaterial(
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Unlit_Luminou;
 	}
+	*/
 	else
 	{
 		UE_LOG(LogCategoryPMXMaterialImport, Error, TEXT("[%s]::BaseMaterial Kind Not Found... "),
