@@ -322,7 +322,8 @@ void UPmxMaterialImport::AssetsCreateTexture(
 				TexturePackage->SetDirtyFlag(true);
 
 				// Updating Texture & mark it as unsaved
-				NewTexture->AddToRoot();
+				// 注意：这里不能 AddToRoot()。资产已由CreatePackage与AssetCreated登记，
+				// 长期驻留Root会导致每次导入都泄漏UTexture对象（永不回收）
 				NewTexture->UpdateResource();
 				NewTexture->MarkPackageDirty();
 
