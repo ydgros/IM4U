@@ -1226,11 +1226,11 @@ UMaterialInterface* UPmxMaterialImport::DuplicateBaseMaterial(
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Normal;
 	}
-	/*
 	else if (EDuplicateBaseMatTypeIndex::E_DupBaseMat_Typ_Luminous == targetMatIndex)
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Luminou;
 	}
+	/*
 	else if (EDuplicateBaseMatTypeIndex::E_DupBaseMat_Typ_Unlit_Normal == targetMatIndex)
 	{
 		DupAssetBaseName = D_IM4U_MMDBaseMat_Path_Unlit_Normal;
