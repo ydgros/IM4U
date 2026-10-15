@@ -71,34 +71,8 @@ namespace
 		return PmxMaterial.Diffuse[3] < 1.0f - UE_KINDA_SMALL_NUMBER;
 	}
 
-	// 结合基础贴图的Alpha通道判定透明材质：
-	// 许多PMX模型材质Alpha为1，透明信息实际存放在贴图的Alpha通道中。
-	bool IsTransparentMmdMaterial(
-		const MMD4UE4::PMX_MATERIAL& PmxMaterial,
-		const TArray<UTexture*>& textureAssetList)
-	{
-		if (IsTransparentMmdMaterial(PmxMaterial))
-		{
-			return true;
-		}
-
-		const int32 TextureCount = PmxMaterial.TextureIndex;
-		if (TextureCount < 0 || TextureCount >= textureAssetList.Num())
-		{
-			return false;
-		}
-
-		if (const UTexture2D* BaseTexture = Cast<UTexture2D>(textureAssetList[TextureCount]))
-		{
-			return BaseTexture->HasAlphaChannel();
-		}
-		return false;
-	}
-
 	// 记录透明材质判定结果，便于确认判定依据是否命中
-	void LogMaterialTransparency(
-		const MMD4UE4::PMX_MATERIAL& PmxMaterial,
-		bool bTransparent)
+	void LogMaterialTransparency(const MMD4UE4::PMX_MATERIAL& PmxMaterial)
 	{
 		UE_LOG(LogCategoryPMXMaterialImport, Log,
 			TEXT("[MaterialBlend] name='%s' Alpha=%.4f CullingOff=%d SphereMode=%d => %s"),
@@ -106,7 +80,7 @@ namespace
 			PmxMaterial.Diffuse[3],
 			PmxMaterial.CullingOff,
 			PmxMaterial.SphereMode,
-			bTransparent ? TEXT("Translucent") : TEXT("Masked"));
+			IsTransparentMmdMaterial(PmxMaterial) ? TEXT("Translucent") : TEXT("Masked"));
 	}
 
 	// 启用混合模式覆盖：透明材质用Translucent，其余用Masked
@@ -1459,8 +1433,8 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked(
 		return nullptr;
 	}
 	// 启用混合模式覆盖：透明材质用Translucent，其余用Masked
-	LogMaterialTransparency(PmxMaterial, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
-	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
+	LogMaterialTransparency(PmxMaterial);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 	//Set Param
 	FStaticParameterSet StaticParams;
 
@@ -1552,7 +1526,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1665,7 +1639,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked_Unlit(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// 应用多个StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1789,7 +1763,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1913,7 +1887,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous_Unlit(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial, textureAssetList));
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitchの適用 複数まとめて
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
