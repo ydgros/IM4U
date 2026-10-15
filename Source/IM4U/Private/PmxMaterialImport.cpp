@@ -65,35 +65,56 @@ namespace
 		}
 	}
 
-	// 启用混合模式覆盖并设为Masked
-	void ApplyMaskedBlendModeForImportedMaterial(UMaterialInstanceConstant* MaterialInstance)
+	// 依据PMX材质的Alpha判定是否为透明材质（PMX中Diffuse[3]即Alpha，小于1视为透明）
+	bool IsTransparentMmdMaterial(const MMD4UE4::PMX_MATERIAL& PmxMaterial)
 	{
+		return PmxMaterial.Diffuse[3] < 1.0f - UE_KINDA_SMALL_NUMBER;
+	}
+
+	// 记录透明材质判定结果，便于确认判定依据是否命中
+	void LogMaterialTransparency(const MMD4UE4::PMX_MATERIAL& PmxMaterial)
+	{
+		UE_LOG(LogCategoryPMXMaterialImport, Log,
+			TEXT("[MaterialBlend] name='%s' Alpha=%.4f CullingOff=%d SphereMode=%d => %s"),
+			*PmxMaterial.Name,
+			PmxMaterial.Diffuse[3],
+			PmxMaterial.CullingOff,
+			PmxMaterial.SphereMode,
+			IsTransparentMmdMaterial(PmxMaterial) ? TEXT("Translucent") : TEXT("Masked"));
+	}
+
+	// 启用混合模式覆盖：透明材质用Translucent，其余用Masked
+	void ApplyBlendModeForImportedMaterial(UMaterialInstanceConstant* MaterialInstance, bool bTransparent)
+	{
+		const EBlendMode TargetBlendMode = bTransparent ? BLEND_Translucent : BLEND_Masked;
 		const bool bNeedsUpdate =
-			MaterialInstance->BasePropertyOverrides.BlendMode != BLEND_Masked ||
+			MaterialInstance->BasePropertyOverrides.BlendMode != TargetBlendMode ||
 			!MaterialInstance->BasePropertyOverrides.bOverride_BlendMode;
 		if (bNeedsUpdate)
 		{
 			MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
-			MaterialInstance->BasePropertyOverrides.BlendMode = BLEND_Masked;
+			MaterialInstance->BasePropertyOverrides.BlendMode = TargetBlendMode;
 			MaterialInstance->UpdateOverridableBaseProperties();
 			MaterialInstance->MarkPackageDirty();
 		}
 	}
 
-	void ApplyMaskedBlendModeForImportedMaterial(UMaterialInterface* MaterialInterface)
+	void ApplyBlendModeForImportedMaterial(UMaterialInterface* MaterialInterface, bool bTransparent)
 	{
+		const EBlendMode TargetBlendMode = bTransparent ? BLEND_Translucent : BLEND_Masked;
+
 		if (UMaterialInstanceConstant* MaterialInstance =
 			Cast<UMaterialInstanceConstant>(MaterialInterface))
 		{
-			ApplyMaskedBlendModeForImportedMaterial(MaterialInstance);
+			ApplyBlendModeForImportedMaterial(MaterialInstance, bTransparent);
 			return;
 		}
 
 		if (UMaterial* Material = Cast<UMaterial>(MaterialInterface))
 		{
-			if (Material->BlendMode != BLEND_Masked)
+			if (Material->BlendMode != TargetBlendMode)
 			{
-				Material->BlendMode = BLEND_Masked;
+				Material->BlendMode = TargetBlendMode;
 				Material->PostEditChange();
 				Material->MarkPackageDirty();
 			}
@@ -737,8 +758,8 @@ if (UnrealMaterial->AmbientOcclusion.Expression == nullptr)
 	
 	// 依据PMX材质的双面标记设置（0x01为双面）
 	ApplyTwoSidedForImportedMaterial(UnrealMaterial, PmxMaterial.CullingOff != 0);
-	// 启用混合模式覆盖并设为Masked
-	ApplyMaskedBlendModeForImportedMaterial(UnrealMaterial);
+	// 启用混合模式覆盖：透明材质用Translucent，其余用Masked
+	ApplyBlendModeForImportedMaterial(UnrealMaterial, IsTransparentMmdMaterial(PmxMaterial));
 
 	// IF Translucent Opacu?
 	//UnrealMaterial->BlendMode = BLEND_Translucent;
@@ -817,7 +838,7 @@ void UPmxMaterialImport::CreateUnrealMaterial(
 			if (FoundMaterial)
 			{
 				ApplyTwoSidedForImportedMaterial(FoundMaterial, PmxMaterial.CullingOff != 0);
-				ApplyMaskedBlendModeForImportedMaterial(FoundMaterial);
+				ApplyBlendModeForImportedMaterial(FoundMaterial, IsTransparentMmdMaterial(PmxMaterial));
 				//ImportedMaterialData.AddImportedMaterial( PmxMaterial, *FoundMaterial );
 				OutMaterials.Add(FoundMaterial);
 				return;
@@ -1409,8 +1430,9 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked(
 
 		return nullptr;
 	}
-	// 启用混合模式覆盖并设为Masked
-	ApplyMaskedBlendModeForImportedMaterial(pUMIC);
+	// 启用混合模式覆盖：透明材质用Translucent，其余用Masked
+	LogMaterialTransparency(PmxMaterial);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 	//Set Param
 	FStaticParameterSet StaticParams;
 
@@ -1502,7 +1524,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyMaskedBlendModeForImportedMaterial(pUMIC);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1615,7 +1637,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked_Unlit(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyMaskedBlendModeForImportedMaterial(pUMIC);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// 应用多个StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1739,7 +1761,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyMaskedBlendModeForImportedMaterial(pUMIC);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitch
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
@@ -1863,7 +1885,7 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Luminous_Unlit(
 	}
 
 	ApplyTwoSidedForImportedMaterial(pUMIC, PmxMaterial.CullingOff != 0);
-	ApplyMaskedBlendModeForImportedMaterial(pUMIC);
+	ApplyBlendModeForImportedMaterial(pUMIC, IsTransparentMmdMaterial(PmxMaterial));
 
 	// StaticSwitchの適用 複数まとめて
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
