@@ -235,7 +235,10 @@ void UPmxMaterialImport::AssetsCreateTexture(
 			continue;
 		}
 
-		FString TextureName = ("T_" + FPaths::GetBaseFilename(ImagePaths[i]));
+		// 用文件名生成纹理名；必须清理非法字符（如重名时出现的括号 T_xxx_(2)），
+		// 否则会触发 CoreRedirects 的 invalid characters 报错
+		FString TextureName = ObjectTools::SanitizeObjectName(
+			TEXT("T_") + FPaths::GetBaseFilename(ImagePaths[i]));
 
 		FString TexturePackageName;
 		FString BasePackageName;
