@@ -17,7 +17,7 @@ IMPLEMENT_MODULE( FIM4U, IM4U )
 void UFbxAssetImportData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-}//ydgro 实现 已声明 UFbxAssetImportData::PostEditChangeProperty PostEditChangeProperty
+}//实现 已声明 UFbxAssetImportData::PostEditChangeProperty PostEditChangeProperty
 
 void FIM4U::StartupModule()
 {

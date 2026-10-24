@@ -1272,7 +1272,7 @@ void UPmxFactory::ImportFbxMorphTarget(
 			Filename,
 			LODIndex, ImportData
 		);
-#if UE_VERSION_OLDER_THAN(5,4,0)//ydgro
+#if UE_VERSION_OLDER_THAN(5,4,0)
 		BaseSkelMesh->SaveLODImportedData(LODIndex,ImportData);
 #endif
 	}

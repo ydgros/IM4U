@@ -1230,7 +1230,7 @@ UMaterialInterface* UPmxMaterialImport::DuplicateBaseMaterial(
 
 	//FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(TEXT(*DupAssetBaseName)));
 	//FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*DupAssetBaseName),false,true);//2023/5/1fix
-	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(*DupAssetBaseName)); //ydgro
+	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(*DupAssetBaseName));
 	//TArray<FAssetData> AssetDataArray;
 	//AssetRegistryModule.Get().GetAssetsByPath(FName(*DupAssetBaseName), AssetDataArray, true);
 	//FAssetData AssetData = AssetDataArray[0];

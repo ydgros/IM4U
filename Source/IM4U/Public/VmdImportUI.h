@@ -92,7 +92,7 @@ class UVmdImportUI : public UObject
 
 
 	/* Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
-	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //ydgro 取消注释打开AnimSequenceAsset导入菜单
+	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //隐藏AnimSequenceAsset导入菜单，取消注释，打开导入菜单
 	UPROPERTY()
 		TObjectPtr<class UAnimSequence> AnimSequenceAsset = nullptr;
 
@@ -101,7 +101,7 @@ class UVmdImportUI : public UObject
 		TArray<class UMMDSkeletalMeshImportData*> TestArrayList;
 	
 	/* MMD2UE4NameTableRow to use for imported asset. When importing a Anim, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
-	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //ydgro 取消注释打开MMD2UE4NameTableRow导入菜单
+	//UPROPERTY(EditAnywhere, Category = Animation, meta = (OBJRestrict = "false")) //隐藏MMD2UE4NameTableRow导入菜单，取消注释，打开导入菜单
 	UPROPERTY()
 		TObjectPtr<UDataTable> MMD2UE4NameTableRow = nullptr;
 

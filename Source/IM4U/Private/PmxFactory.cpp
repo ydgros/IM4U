@@ -454,7 +454,7 @@ UObject* UPmxFactory::FactoryCreateBinary
 			GEditor->GetEditorSubsystem<UImportSubsystem>()->OnAssetPostImport.Broadcast(this, nullptr);
 			return nullptr;
 		}
-		*/ //ydgro
+		*/
 		TitleStr = FText::Format(LOCTEXT("ImportReadMe_Generic_Dbg", "{0} 制限事項"), FText::FromString("IM4U Plugin"));
 		const FText MessageDbg
 			= FText(LOCTEXT("ImportReadMe_Generic_Dbg_Msg",
@@ -685,7 +685,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 	if (true /*!FbxShapeArray*/)
 	{
 		//UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, RF_PendingKill);//~UE4.10
-		#if UE_VERSION_OLDER_THAN(5,2,0) //ydgro
+		#if UE_VERSION_OLDER_THAN(5,2,0)
 		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);//UE4.11~
 		#else  
 		//UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);
@@ -715,7 +715,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 	FSkeletalMeshImportData TempData;
 	// Fill with data from buffer - contains the full .FBX file.
 	FSkeletalMeshImportData* SkelMeshImportDataPtr = &TempData;
-	if (OutData) //ydgro
+	if (OutData)
 	{
 		SkelMeshImportDataPtr = OutData;
 	}
@@ -816,7 +816,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 	ImportedResource->LODModels.Add(new FSkeletalMeshLODModel());
 	constexpr int32 ImportLODModelIndex = 0;
 	FSkeletalMeshLODModel& LODModel = ImportedResource->LODModels[ImportLODModelIndex];
-	#if UE_VERSION_OLDER_THAN(5,4,0)//ydgro
+	#if UE_VERSION_OLDER_THAN(5,4,0)
 	SkeletalMesh->SaveLODImportedData(0, *SkelMeshImportDataPtr);
 	#else
 	/*#include "MeshDescription.h"
@@ -842,7 +842,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 
 	{
 		//We reimport both
-		#if UE_VERSION_OLDER_THAN(5,4,0)//ydgro
+		#if UE_VERSION_OLDER_THAN(5,4,0)
 		SkeletalMesh->SetLODImportedDataVersions(ImportLODModelIndex, ESkeletalMeshGeoImportVersions::LatestVersion, ESkeletalMeshSkinningImportVersions::LatestVersion);
 		#else
 		//SkeletalMesh->SetLODImportedDataVersions(ImportLODModelIndex, ESkeletalMeshGeoImportVersions::LatestVersion, ESkeletalMeshSkinningImportVersions::LatestVersion);
@@ -980,7 +980,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 			#if UE_VERSION_OLDER_THAN(5,2,0)
 			if (SkelComp->SkeletalMesh == SkeletalMesh)
 			#else  
-			if (SkelComp->GetSkeletalMeshAsset() == SkeletalMesh) //ydgro
+			if (SkelComp->GetSkeletalMeshAsset() == SkeletalMesh)
 			#endif
 			{
 				FComponentReregisterContext ReregisterContext(SkelComp);

@@ -296,7 +296,7 @@ if (false)
 		//读取模型后的警告文显示：注释栏
 		FText TitleStr = FText::Format(
 			LOCTEXT("ImportReadMe_Generic_Dbg", "{0} 制限事項"), FText::FromString("IM4U Plugin"));
-		*/ //ydgro
+		*/
 		const FText MessageDbg
 			= FText(LOCTEXT("ImportReadMe_Generic_Dbg_Comment",
 			                "当前有效的参数包括：\n\
@@ -311,7 +311,7 @@ if (false)
 				)
 			);
 #if UE_VERSION_OLDER_THAN(5,3,0)
-		FMessageDialog::Open(EAppMsgType::Ok, MessageDbg, &TitleStr);//ydgro
+		FMessageDialog::Open(EAppMsgType::Ok, MessageDbg, &TitleStr);
 #else  
 		FMessageDialog::Open(EAppMsgType::Ok, MessageDbg);  
 #endif
@@ -335,7 +335,7 @@ if (false)
 			)
 			                , FText::FromString(vmdMotionInfo.ModelName)
 			);
-		//FMessageDialog::Open(EAppMsgType::Ok, MessageDbg, &TitleStr);//ydgro
+		//FMessageDialog::Open(EAppMsgType::Ok, MessageDbg, &TitleStr);
 		FMessageDialog::Open(EAppMsgType::Ok, MessageDbg);
 	}
 
@@ -405,7 +405,7 @@ if (false)
 #if UE_VERSION_OLDER_THAN(5,3,0)
 					FMessageDialog::Open(EAppMsgType::Ok, MessageDbg, &TitleStr);
 #else  
-					FMessageDialog::Open(EAppMsgType::Ok, MessageDbg);  //ydgro
+					FMessageDialog::Open(EAppMsgType::Ok, MessageDbg);
 #endif
 				}
 				/* 再来一次*/
@@ -668,7 +668,7 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 #if UE_VERSION_OLDER_THAN(5,3,0)
 			adc.UpdateCurveNamesFromSkeleton(Skeleton, ERawCurveTrackTypes::RCT_Float);
 #else  
-            adc.UpdateCurveNamesFromSkeleton(Skeleton); //ydgro
+            adc.UpdateCurveNamesFromSkeleton(Skeleton);
 #endif
 
 			adc.NotifyPopulated();
@@ -788,7 +788,7 @@ UAnimSequence* UVmdFactory::AddtionalMorphCurveImportToAnimations(
 			auto& adc = exsistAnimSequ->GetController();
 			adc.OpenBracket(LOCTEXT("ImportAsSkeletalMesh", "Importing VMD Animation"));
 #if UE_VERSION_OLDER_THAN(5,3,0)
-			adc.UpdateCurveNamesFromSkeleton(Skeleton, ERawCurveTrackTypes::RCT_Float); //ydgro
+			adc.UpdateCurveNamesFromSkeleton(Skeleton, ERawCurveTrackTypes::RCT_Float);
 #else  
 			adc.UpdateAttributesFromSkeleton(Skeleton);
 #endif
@@ -890,11 +890,11 @@ bool UVmdFactory::ImportMorphCurveToAnimSequence(
 
 				if (vmdFaceTrackPtr->keyList.Num() > 0) {
 
-					//FSmartName NewName; //ydgro
+					//FSmartName NewName;
 #if UE_VERSION_OLDER_THAN(5,3,0)
 					Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, NewName);
 #else  
-					Skeleton->AddCurveMetaData(Name); //ydgro
+					Skeleton->AddCurveMetaData(Name);
 					Skeleton->AccumulateCurveMetaData(Name, false, true);
 #endif
 					FAnimationCurveIdentifier curve2;
@@ -1613,11 +1613,11 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 
 				if (vmdFaceTrackPtr->keyList.Num() > 0) {
 
-					//FSmartName NewName; //ydgro
+					//FSmartName NewName;
 #if UE_VERSION_OLDER_THAN(5,3,0)
 					Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, Name, NewName);
 #else  
-					Skeleton->AddCurveMetaData(Name); //ydgro
+					Skeleton->AddCurveMetaData(Name);
 					Skeleton->AccumulateCurveMetaData(Name, false, true);
 #endif
 					FAnimationCurveIdentifier curve2;
@@ -1690,7 +1690,7 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 #if UE_VERSION_OLDER_THAN(5,3,0)
 	adc.UpdateCurveNamesFromSkeleton(Skeleton, ERawCurveTrackTypes::RCT_Float);
 #else  
-	adc.UpdateAttributesFromSkeleton(Skeleton); //ydgro
+	adc.UpdateAttributesFromSkeleton(Skeleton);
 #endif
 	adc.NotifyPopulated();
 	if (const IAnimationDataModel* ControllerModel = adc.GetModel())
