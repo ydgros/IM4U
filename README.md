@@ -6,6 +6,11 @@
  - Fixed vmd importing slow problem
  - Generate rigid body based on pmx physics data
 
+# 建议使用Git浅克隆，跳过历史提交记录
+```bash
+git clone --depth 1
+```
+
 # ORIGINAL README
 
 Import [MikuMikuDance (MMD)](https://sites.google.com/view/vpvp/) models and motion files plugin for Unreal Engine 5.
