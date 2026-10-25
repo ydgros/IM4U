@@ -8,7 +8,6 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "PmxImportUI.h"
 
 class SPmxOptionWindow : public SCompoundWidget

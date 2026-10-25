@@ -2,7 +2,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
-#include "SSkeletonWidget.h"
 #include "MMDExtendAsset.generated.h"
 
 //MMD IK Link Structure

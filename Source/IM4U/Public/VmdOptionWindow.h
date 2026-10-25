@@ -2,13 +2,11 @@
 #pragma once
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/SWindow.h"
-#include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "VmdImportUI.h"
 
 class SVmdOptionWindow : public SCompoundWidget

@@ -4,7 +4,7 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
 #include "Factories/Factory.h"
-#include "Runtime/Core/Public/Logging/TokenizedMessage.h"
+#include "Logging/TokenizedMessage.h"
 #include "ImportUtils/SkelImport.h"
 #include "PmxImporter.h"
 #include "PmxImportUI.h"
