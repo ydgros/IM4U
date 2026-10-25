@@ -19,6 +19,7 @@ Original repository contributors:
 * goopymoon https://github.com/goopymoon/
 * alwei https://github.com/alwei
 * demuyan https://github.com/demuyan
+* glm https://github.com/icaven/glm
 
 This software is released under the MIT License.
 
