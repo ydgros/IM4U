@@ -202,7 +202,7 @@ void FMorphMeshRawSource::CalculateMorphTargetLODModel(const FMorphMeshRawSource
 						we can't compare normal unless it's calculated
 						this is special flag to ignore normal diff*/
 						// (true && NormalDeltaZ.SizeSquared() > 0.01f))
-						(NormalDeltaZ.SizeSquared() > 0.01f)) //5.8
+						(NormalDeltaZ.SizeSquared() > 0.01f)) //UE5.8
 					{
 						// create a new entry
 						FMorphTargetDelta NewVertex;
@@ -233,7 +233,7 @@ void FMorphMeshRawSource::CalculateMorphTargetLODModel(const FMorphMeshRawSource
 // UPmxFactory
 
 bool UPmxFactory::ImportBone(
-	//TArray<FbxNode*>& NodeArray,//5.7
+	//TArray<FbxNode*>& NodeArray,
 	MMD4UE4::PmxMeshInfo* PmxMeshInfo,
 	FSkeletalMeshImportData& ImportData,
 	//UFbxSkeletalMeshImportData* TemplateData,
@@ -249,8 +249,8 @@ bool UPmxFactory::ImportBone(
 return false;
 	}
 
-	//bool GlobalLinkFoundFlag; //5.8
-	//bool bAnyLinksNotInBindPose = false; //5.8
+	//bool GlobalLinkFoundFlag; //UE5.8
+	//bool bAnyLinksNotInBindPose = false; //UE5.8
 	FString LinksWithoutBindPoses;
 	int32 NumberOfRoot = 0;
 	initMmdNameMap();
@@ -276,7 +276,7 @@ return false;
 				}
 			}
 		}
-		//int32 LinkParent = PmxMeshInfo->boneList[LinkIndex].ParentBoneIndex;//5.7
+		//int32 LinkParent = PmxMeshInfo->boneList[LinkIndex].ParentBoneIndex;
 		if (LinkParent >= 0 && LinkParent < PmxMeshInfo->boneList.Num())
 		{
 				ParentIndex = LinkParent;
@@ -287,7 +287,7 @@ return false;
 		{
 			++NumberOfRoot;
 			/*int32 RootIdx = -1;
-			RootIdx = LinkIndex;*/ //5.8
+			RootIdx = LinkIndex;*/ //UE5.8
 			if (NumberOfRoot > 1)
 			{
 				AddTokenizedErrorMessage(
@@ -300,7 +300,7 @@ return false;
 			}
 		}
 
-		// GlobalLinkFoundFlag = false; //5.8
+		// GlobalLinkFoundFlag = false; //UE5.8
 
 		//ImportData.RefBonesBinary.AddZeroed();
 		// set bone
@@ -346,7 +346,7 @@ return false;
 			{
 				Bone.NumChildren++;
 				/*int childIdx = -1;
-				childIdx = ChildIndex;*/ //5.8
+				childIdx = ChildIndex;*/ //UE5.8
 			}
 		}
 
@@ -379,7 +379,7 @@ return false;
 					UE_LOG(LogMMD4UE4_PMXFactory, Error, TEXT("BoneIndex %d out of range for vertex %d"), BoneIdx, ControlPointIndex);
 					BoneIdx = 0; // 或者 continue;
 				}
-				//ImportData.Influences.Last().BoneIndex = BoneIdx;//5.7 无法读写内存
+				//ImportData.Influences.Last().BoneIndex = BoneIdx;//UE5.7,无法读写内存
 				ftr = FRotator3f(0, 0, 0).Quaternion();
 			}
 		}
@@ -466,8 +466,8 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				{
 					if (UMaterial* UnrealMaterialPtr = Cast<UMaterial>(Materials[MaterialIndex]))
 					{
-						//UnrealMaterialPtr->bUsedWithMorphTargets = 1; //5.7
-						UnrealMaterialPtr->bHasPixelAnimation = 1; //5.8 //Material.h
+						//UnrealMaterialPtr->bUsedWithMorphTargets = 1;
+						UnrealMaterialPtr->bHasPixelAnimation = 1; //UE5.8 //Material.h
 					}
 				}
 
@@ -508,7 +508,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 	int32 TriangleCount = PmxMeshInfo->faseList.Num();//Mesh->GetPolygonCount();
 	int32 ExistFaceNum = ImportData.Faces.Num();
 	ImportData.Faces.AddUninitialized(TriangleCount);
-	//int32 ExistWedgesNum = ImportData.Wedges.Num(); //5.8
+	//int32 ExistWedgesNum = ImportData.Wedges.Num(); //UE5.8
 	SkeletalMeshImportData::FVertex TmpWedges[3];
 
 	int32 facecount = 0;
@@ -541,7 +541,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				}
 			}
 			/*
-			else //5.8 不能删
+			else //UE5.8 不能删
 			{
 				for (int32 NormalIndex = 0; NormalIndex < 3; ++NormalIndex)
 				{
@@ -549,7 +549,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 					Triangle.TangentY[NormalIndex] = FVector3f::ZeroVector;
 					Triangle.TangentZ[NormalIndex] = FVector3f::ZeroVector;
 				}
-			}//5.8 //不能删
+			}//UE5.8 //不能删
 			*/
 		}
 
@@ -631,7 +631,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 			++ControlPointIndex)
 		{
 			// int32 multiBone = 0;
-			int32 multiBone; //5.8
+			int32 multiBone; //UE5.8
 			switch (PmxMeshInfo->vertexList[ControlPointIndex].WeightType)
 			{
 			case 0://0:BDEF1
@@ -724,7 +724,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 	else // for rigid mesh
 	{
 		// find the bone index
-		// int32 BoneIndex = -1; //5.8
+		// int32 BoneIndex = -1; //UE5.8
 		/*for (int32 LinkIndex = 0; LinkIndex < SortedLinks.Num(); LinkIndex++)
 		{
 			// the bone is the node itself
@@ -734,11 +734,11 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 				break;
 			}
 		}*/
-		// BoneIndex = 0; //5.8
+		// BoneIndex = 0; //UE5.8
 		//	for each vertex in the mesh
 		for (int32 ControlPointIndex = 0; ControlPointIndex < ControlPointsCount; ++ControlPointIndex)
 		{
-			int32 BoneIndex = 0; //5.8
+			int32 BoneIndex = 0; //UE5.8
 			ImportData.Influences.AddUninitialized();
 			ImportData.Influences.Last().BoneIndex = BoneIndex;
 			ImportData.Influences.Last().Weight = 1.0;
@@ -877,7 +877,7 @@ public:
 
 #if 1
 	//FORCEINLINE TStatId static GetStatId() const
-	FORCEINLINE TStatId static GetStatId()//5.8
+	FORCEINLINE TStatId static GetStatId()//UE5.8
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncImportMorphTargetWork, STATGROUP_ThreadPoolAsyncTasks);
 	}
@@ -1245,7 +1245,7 @@ void UPmxFactory::ImportFbxMorphTarget(
 	FSkeletalMeshImportData& ImportData
 )
 {
-	//bool bHasMorph = false; //5.8
+	//bool bHasMorph = false; //UE5.8
 	if (PmxMeshInfo.morphList.Num() > 0)
 	{
 #if !UE_VERSION_OLDER_THAN(5,4,0)
@@ -1278,7 +1278,7 @@ void UPmxFactory::ImportFbxMorphTarget(
 	}
 	//BaseSkelMesh->SaveLODImportedData(0, ImportData);//UE5.7不再提供支持
 
-	//后处理。在UE5.7需要调用CreateMeshDescription
+	//后处理,在UE5.7需要调用CreateMeshDescription
 	if (BaseSkelMesh)
     {
         BaseSkelMesh->PostLoad();

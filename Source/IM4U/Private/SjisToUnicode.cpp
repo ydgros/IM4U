@@ -9225,7 +9225,7 @@ namespace saba
 	/*static bool IsSjis1ByteChar(int ch)
 	{
 		return IsAscii(ch) || IsSjisHankaku(ch);
-	}*///5.8
+	}*///UE5.8
 
 	static bool IsSjis1stByte1(int code1)
 	{

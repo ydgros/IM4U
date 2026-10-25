@@ -81,7 +81,7 @@ class UPmxMaterialImport
 	/* Luminous Specular Powor Min*/
 #define D_IM4U_Param_SpecularPowor_Min		100.0f
 
-	UObject* InParent = nullptr; //5.8
+	UObject* InParent = nullptr; //UE5.8
 
 	TMap<FString, UTexture*> ExistImages;
 public:

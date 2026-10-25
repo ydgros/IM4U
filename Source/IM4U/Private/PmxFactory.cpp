@@ -107,7 +107,7 @@ UClass* UPmxFactory::ResolveSupportedClass()
 //////////////////////////////////////////////
 
 bool UPmxFactory::FImportPmxFromFile(FString file) {
-	UObject* NewObject = nullptr;//5.8//位置不能移动
+	UObject* NewObject = nullptr;//UE5.8//位置不能移动
 	FString filepath = file;
 	int32 indexs = -1;
 	if (filepath.FindLastChar('\\', indexs)) {
@@ -223,8 +223,8 @@ bool UPmxFactory::FImportPmxFromFile(FString file) {
 								UE_LOG(LogTemp, Warning, TEXT("!!!PMX Import :%s"), *Filename);
 								if (InterestingNodeCount > 0)
 								{
-									//int32 ImportedMeshCount = 0; //5.8
-									//UStaticMesh* NewStaticMesh = nullptr; //5.8
+									//int32 ImportedMeshCount = 0; //UE5.8
+									//UStaticMesh* NewStaticMesh = nullptr; //UE5.8
 
 									if (importAssetTypeMMD == E_MMD_TO_UE4_SKELTON)// skeletal mesh
 									{
@@ -237,7 +237,7 @@ bool UPmxFactory::FImportPmxFromFile(FString file) {
 											#ifdef DEBUG_MMD_UE4_ORIGINAL_CODE
 											#else
 											// for MMD?
-											//int32 MaxLODLevel = 1; //5.8
+											//int32 MaxLODLevel = 1; //UE5.8
 											FSkeletalMeshImportData smid;
 											USkeletalMesh* NewMesh = nullptr;
 											if (LODIndex == 0)
@@ -262,7 +262,7 @@ bool UPmxFactory::FImportPmxFromFile(FString file) {
 												UE_LOG(LogTemp, Warning, TEXT("!!!PMX Import :bImportMorphTargets"));
 												// Disable material importing when importing morph targets
 												uint32 bImportMaterials = ImportOptions->bImportMaterials;
-												ImportOptions->bImportMaterials = false; //5.8 build报错
+												ImportOptions->bImportMaterials = false; //UE5.8 build报错
 
 												ImportFbxMorphTarget(
 													//SkelMeshNodeArray, 
@@ -331,7 +331,7 @@ bool UPmxFactory::FImportPmxFromFile(FString file) {
 							AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_NoObject", "Import failed.")), "FFbxErrors::Generic_ImportingNewObjectFailed");
 							//Warn->Log(ELogVerbosity::Error, "PMX Import ERR [NewObject is nullptr]...FLT");
 							return false;
-						} //5.8 build报错
+						} //UE5.8 build报错
 
 						//InParent->MarkPackageDirty(); //变量表达式未使用
 						return true;
@@ -527,8 +527,8 @@ UObject* UPmxFactory::FactoryCreateBinary
 			const FString Filename(UFactory::CurrentFilename);
 			if (/*RootNodeToImport &&*/ InterestingNodeCount > 0)
 			{
-				//int32 ImportedMeshCount = 0; //5.8
-				//UStaticMesh* NewStaticMesh = nullptr; //5.8
+				//int32 ImportedMeshCount = 0; //UE5.8
+				//UStaticMesh* NewStaticMesh = nullptr; //UE5.8
 				if (importAssetTypeMMD == E_MMD_TO_UE4_STATICMESH)  // static mesh
 				{
 
@@ -546,7 +546,7 @@ UObject* UPmxFactory::FactoryCreateBinary
 					
 #else
 						// for MMD?
-						//int32 MaxLODLevel = 1; //5.8
+						//int32 MaxLODLevel = 1; //UE5.8
 						FSkeletalMeshImportData smid;
 						USkeletalMesh* NewMesh = nullptr;
 						if (LODIndex == 0 /*&& SkelMeshNodeArray.Num() != 0*/)
@@ -679,7 +679,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 {
 	bool bDiffPose;
 	struct ExistingSkelMeshData* ExistSkelMeshDataPtr = nullptr;
-	//int32 SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh //5.8
+	//int32 SkelType = 0; // 0 for skeletal mesh, 1 for rigid mesh //UE5.8
 	//bool bCreateRenderData = true;
 
 	if (true /*!FbxShapeArray*/)
@@ -689,8 +689,8 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 		UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, false, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);//UE4.11~
 		#else  
 		//UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), false, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);
-		//UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), EFindObjectFlags::None, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);//5.7
-		UObject* ExistingObject = StaticFindObjectFast(UClass::StaticClass(), InParent, *Name.ToString(), EFindObjectFlags::None, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);//5.8 //UObjectGlobals.h //TextProperty.h
+		//UObject* ExistingObject = StaticFindObjectFast(UObject::StaticClass(), InParent, *Name.ToString(), EFindObjectFlags::None, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);
+		UObject* ExistingObject = StaticFindObjectFast(UClass::StaticClass(), InParent, *Name.ToString(), EFindObjectFlags::None, EObjectFlags::RF_Standalone, EInternalObjectFlags::LoaderImport);//UE5.8 //UObjectGlobals.h //TextProperty.h
 		#endif
 		USkeletalMesh* ExistingSkelMesh = Cast<USkeletalMesh>(ExistingObject);
 
@@ -850,7 +850,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 	}
 	USkeletalMesh* Mesh = SkeletalMesh;
 	//Mesh->ResetLODInfo(); //堆栈错误
-	Mesh->SetNumSourceModels(0);//5.7
+	Mesh->SetNumSourceModels(0);
 	FSkeletalMeshLODInfo & NewLODInfo = SkeletalMesh->AddLODInfo();
 	NewLODInfo.ReductionSettings.NumOfTrianglesPercentage = 1.0f;
 	NewLODInfo.ReductionSettings.NumOfVertPercentage = 1.0f;
@@ -1068,7 +1068,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 									BodyAngularDamping += FMath::Clamp(rb.RotDim, 0.0f, 1.0f);
 								}
 								FTransform ft;
-								ft.SetLocation((FVector3d)rb.Position); //5.8
+								ft.SetLocation((FVector3d)rb.Position); //UE5.8
 								ft.SetRotation(rb.Quat);
 								if (rb.ShapeType == 0) {
 									FKSphereElem ke(rb.Size.X);
@@ -1300,7 +1300,7 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 	FString ObjectName = FString::Printf(TEXT("%s_MMDExtendAsset"), *Name.ToString());
 	const FString AssetDirectory = GetMeshAssetDirectory(SkeletalMesh) / GetMMDExtendAssetFolderName();
 	bool bMMDExtendAssetCreated = false;
-	//UMMDExtendAsset * NewMMDExtendAsset = nullptr; //5.8
+	//UMMDExtendAsset * NewMMDExtendAsset = nullptr; //UE5.8
 	UMMDExtendAsset *NewMMDExtendAsset = CreateAsset<UMMDExtendAsset>(
 		AssetDirectory, ObjectName, true, &bMMDExtendAssetCreated);
 	if (!NewMMDExtendAsset)

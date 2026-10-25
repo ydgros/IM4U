@@ -741,7 +741,7 @@ namespace MMD4UE4
 								= ConvertMMDSJISToFString((uint8 *)&(boneList[tempPmdIKPtr->ChainBoneIndexs[j]].Name),
 								sizeof(boneList[tempPmdIKPtr->ChainBoneIndexs[j]].Name));
 							// const char hiza[20] = "ひざ";
-							constexpr char hiza[20] = "ひざ"; //5.8
+							constexpr char hiza[20] = "ひざ"; //UE5.8
 							FString tempHizaName
 								= ConvertMMDSJISToFString((uint8 *)&(hiza),
 								sizeof(hiza));

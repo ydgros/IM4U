@@ -18,21 +18,21 @@ UMMDStaticMeshImportData* UMMDStaticMeshImportData::GetImportDataForStaticMesh(U
 	check(StaticMesh);
 	
 	//UMMDStaticMeshImportData* ImportData = Cast<UMMDStaticMeshImportData>(StaticMesh->AssetImportData);
-	UMMDStaticMeshImportData* ImportData = Cast<UMMDStaticMeshImportData>(StaticMesh->GetAssetImportData());//5.7
+	UMMDStaticMeshImportData* ImportData = Cast<UMMDStaticMeshImportData>(StaticMesh->GetAssetImportData());
 	if ( !ImportData )
 	{
 		ImportData = NewObject<UMMDStaticMeshImportData>(StaticMesh, NAME_None, RF_NoFlags, TemplateForCreation);
 
 		// Try to preserve the source file path if possible
 		//if (StaticMesh->AssetImportData != NULL)
-		if (StaticMesh->GetAssetImportData() != nullptr)//5.7
+		if (StaticMesh->GetAssetImportData() != nullptr)
 		{
 			//ImportData->SourceData = StaticMesh->AssetImportData->SourceData;
-			ImportData->SourceData = Cast<UMMDStaticMeshImportData>(StaticMesh->GetAssetImportData())->SourceData;//5.7
+			ImportData->SourceData = Cast<UMMDStaticMeshImportData>(StaticMesh->GetAssetImportData())->SourceData;
 		}
 
 		//StaticMesh->AssetImportData = ImportData;
-		StaticMesh->SetAssetImportData(ImportData);//5.7
+		StaticMesh->SetAssetImportData(ImportData);
 	}
 
 	return ImportData;

@@ -343,7 +343,7 @@ namespace MMD4UE4
 				return false;
 			}
 			//var = *(T*)Buffer;//C语言转换
-			FMemory::Memcpy(&var, Buffer, memcopySize);//5.8 //C++转换
+			FMemory::Memcpy(&var, Buffer, memcopySize);//UE5.8 //C++转换
 			Buffer += memcopySize;
 			return true;
 		}
@@ -464,7 +464,7 @@ struct PMXImportOptions
 
 PMXImportOptions* GetImportOptions(
 	//class FPmxImporter* PmxImporter,
-	const class FPmxImporter* PmxImporter, //5.8
+	const class FPmxImporter* PmxImporter, //UE5.8
 	UPmxImportUI* ImportUI,
 	bool bShowOptionDialog,
 	const FString& FullPath,

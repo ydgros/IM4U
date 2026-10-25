@@ -1927,7 +1927,7 @@ bool UVmdFactory::ImportVmdFromFile(FString file, USkeletalMesh* SkeletalMesh) {
 	initMmdNameMap();
 	MMD4UE4::VmdMotionInfo vmdMotionInfo;
 
-	UVmdFactory* MyFactory = NewObject<UVmdFactory>(); //5.8
+	UVmdFactory* MyFactory = NewObject<UVmdFactory>(); //UE5.8
 	TArray<uint8> File_Result;
 
 	FString filepath = file;
@@ -1947,7 +1947,7 @@ bool UVmdFactory::ImportVmdFromFile(FString file, USkeletalMesh* SkeletalMesh) {
 					}
 					UAnimSequence* LastCreatedAnim = nullptr;
 					USkeleton* Skeleton = nullptr;
-					VMDImportOptions* ImportOptions = nullptr; //5.8
+					VMDImportOptions* ImportOptions = nullptr; //UE5.8
 					//UIKRigDefinition* IKRig = nullptr;
 					//UMMDExtendAsset* MMDasset = nullptr;
 					if (SkeletalMesh) {

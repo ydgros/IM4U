@@ -1612,9 +1612,9 @@ UMaterialInterface* UPmxMaterialImport::CreateMaterialInst_Masked_Unlit(
 		Param.bOverride = true;
 		
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
-		StaticParams.EditorOnly.StaticSwitchParameters_DEPRECATED.Add(Param);//5.2失效
+		StaticParams.EditorOnly.StaticSwitchParameters_DEPRECATED.Add(Param);//UE5.2失效
 #else
-		StaticParams.StaticSwitchParameters_DEPRECATED.Add(Param);//5.2失效
+		StaticParams.StaticSwitchParameters_DEPRECATED.Add(Param);//UE5.2失效
 #endif
 		UE_LOG(LogCategoryPMXMaterialImport, Log, TEXT("[%s]:MIC Texure mode enable "), *(FString(__FUNCTION__)));
 	}

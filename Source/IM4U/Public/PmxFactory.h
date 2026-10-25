@@ -24,7 +24,7 @@ class IM4U_API UPmxFactory : public UFactory // public UFbxFactory
 	virtual void PostInitProperties() override;
 	virtual bool DoesSupportClass(UClass * Class) override;
 	virtual UClass* ResolveSupportedClass() override;
-protected: //5.8
+protected: //UE5.8
 	virtual UObject* FactoryCreateBinary( //堆栈错误 02
 		UClass* InClass, 
 		UObject* InParent, 
@@ -101,7 +101,7 @@ protected: //5.8
 	{
 		//return (T*)CreateAssetOfClass(T::StaticClass(), ParentPackageName, ObjectName, bAllowReplace);
 		return (static_cast<T*>(CreateAssetOfClass(
-			T::StaticClass(), ParentPackageName, ObjectName, bAllowReplace, bOutCreated))); //5.8
+			T::StaticClass(), ParentPackageName, ObjectName, bAllowReplace, bOutCreated))); //UE5.8
 	}
 
 	void ImportMorphTargetsInternal(
@@ -136,7 +136,7 @@ protected: //5.8
 
 public:
 	//UFUNCTION(BlueprintCallable, Category = "im4u")
-	UFUNCTION()//5.8
+	UFUNCTION()//UE5.8
 		static bool ImportPmxFromFile(FString file);
 
 	bool FImportPmxFromFile(FString file);

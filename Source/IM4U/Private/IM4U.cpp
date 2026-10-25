@@ -4,7 +4,7 @@
 #include "VmdImporter.h"
 #include "Factories/FbxAssetImportData.h"
 
-class FIM4U : public IIM4U //5.8
+class FIM4U : public IIM4U //UE5.8
 {
 public://基class IModuleInterface中函数 FIM4U::StartupModule 的可见性从 public 更改为 private
 	/* IModuleInterface implementation */

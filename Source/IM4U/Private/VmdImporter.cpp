@@ -76,7 +76,7 @@ namespace MMD4UE4
 					return false;
 				}
 
-				//memcopySize = sizeof(VMD_KEY); //5.8
+				//memcopySize = sizeof(VMD_KEY); //UE5.8
 				readData.vmdKeyList.AddZeroed(readData.vmdKeyCount);
 				
 				for (int32 i = 0; i < readData.vmdKeyCount; ++i)
@@ -203,7 +203,7 @@ namespace MMD4UE4
 		{
 			//Keys
 			TArray<VmdKeyTrackList>	tempKeyBoneList;
-			VmdKeyTrackList * vmdKeyTrackPtr = nullptr;//5.8//不能删
+			VmdKeyTrackList * vmdKeyTrackPtr = nullptr;//UE5.8//不能删
 			//VMD_KEY * vmdKeyPtr = NULL;
 
 			//VMD Key
@@ -221,13 +221,13 @@ namespace MMD4UE4
 				arrayIndx = tempTrackNameList.AddUnique(trackName);
 				if (tempTrackNameList.Num() > arrayIndxPre)
 				{
-					arrayIndx = tempKeyBoneList.Add(VmdKeyTrackList());//5.8//不能删
-					vmdKeyTrackPtr = &(tempKeyBoneList[arrayIndx]);//5.8//不能删
+					arrayIndx = tempKeyBoneList.Add(VmdKeyTrackList());//UE5.8//不能删
+					vmdKeyTrackPtr = &(tempKeyBoneList[arrayIndx]);//UE5.8//不能删
 					vmdKeyTrackPtr->TrackName = trackName;
 				}
 				else
 				{
-					vmdKeyTrackPtr = &(tempKeyBoneList[arrayIndx]);//5.8//不能删
+					vmdKeyTrackPtr = &(tempKeyBoneList[arrayIndx]);//UE5.8//不能删
 					/*VmdKeyTrackList * vmdKeyTrackPtr = &(tempKeyBoneList[arrayIndx]);
 					
 					//exist
@@ -239,10 +239,10 @@ namespace MMD4UE4
 					break;
 					}
 					vmdKeyTrackPtr = NULL;
-					}*/ //5.8
+					}*/ //UE5.8
 				}
 				check(vmdKeyTrackPtr);
-				arrayIndx = vmdKeyTrackPtr->keyList.Add(*vmdKeyPtr); //5.8
+				arrayIndx = vmdKeyTrackPtr->keyList.Add(*vmdKeyPtr); //UE5.8
 				vmdKeyTrackPtr->maxFrameCount
 					= FMath::Max(vmdKeyPtr->Frame, vmdKeyTrackPtr->maxFrameCount);
 				vmdKeyTrackPtr->minFrameCount
@@ -302,7 +302,7 @@ namespace MMD4UE4
 		{
 			//Skins
 			TArray<VmdFaceTrackList> tempKeyFaceList;
-			VmdFaceTrackList * vmdFaceTrackPtr = nullptr;//5.8//不能删
+			VmdFaceTrackList * vmdFaceTrackPtr = nullptr;//UE5.8//不能删
 			//VMD_FACE_KEY * vmdFacePtr = NULL;
 			//坡口
 			//Facc
@@ -318,13 +318,13 @@ namespace MMD4UE4
 				arrayIndx = tempTrackNameList.AddUnique(trackName);
 				if (tempTrackNameList.Num() > arrayIndxPre)
 				{
-					arrayIndx = tempKeyFaceList.Add(VmdFaceTrackList());//5.8//不能删
-					vmdFaceTrackPtr = &(tempKeyFaceList[arrayIndx]);//5.8//不能删
+					arrayIndx = tempKeyFaceList.Add(VmdFaceTrackList());//UE5.8//不能删
+					vmdFaceTrackPtr = &(tempKeyFaceList[arrayIndx]);//UE5.8//不能删
 					vmdFaceTrackPtr->TrackName = trackName;
 				}
 				else
 				{
-					vmdFaceTrackPtr = &(tempKeyFaceList[arrayIndx]);//5.8//不能删
+					vmdFaceTrackPtr = &(tempKeyFaceList[arrayIndx]);//UE5.8//不能删
 					/*VmdFaceTrackList *vmdFaceTrackPtr = &(tempKeyFaceList[arrayIndx]);
 
 					//exist
@@ -336,10 +336,10 @@ namespace MMD4UE4
 					break;
 					}
 					vmdKeyTrackPtr = NULL;
-					}*/ //5.8
+					}*/ //UE5.8
 				}
 				check(vmdFaceTrackPtr);
-				arrayIndx = vmdFaceTrackPtr->keyList.Add(*vmdFacePtr); //5.8
+				arrayIndx = vmdFaceTrackPtr->keyList.Add(*vmdFacePtr); //UE5.8
 				vmdFaceTrackPtr->maxFrameCount
 					= FMath::Max(vmdFacePtr->Frame, vmdFaceTrackPtr->maxFrameCount);
 				vmdFaceTrackPtr->minFrameCount
@@ -410,7 +410,7 @@ namespace MMD4UE4
 			{
 				VMD_CAMERA * vmdCamKeyPtr = &(readData->vmdCameraList[i]);
 				check(vmdCamKeyTrackPtr);
-				arrayIndx = vmdCamKeyTrackPtr->keyList.Add(*vmdCamKeyPtr); //5.8
+				arrayIndx = vmdCamKeyTrackPtr->keyList.Add(*vmdCamKeyPtr); //UE5.8
 				vmdCamKeyTrackPtr->maxFrameCount
 					= FMath::Max(vmdCamKeyPtr->Frame, vmdCamKeyTrackPtr->maxFrameCount);
 				vmdCamKeyTrackPtr->minFrameCount
@@ -481,7 +481,7 @@ namespace MMD4UE4
 
 	int32 VmdMotionInfo::FindKeyTrackName(
 	    //FString targetName,
-	    FString(targetName), //5.8 //常量引用传递
+	    FString(targetName), //UE5.8 //常量引用传递
 		EVMDKEYFRAMETYPE listType)
 	{
 		int32  index = -1;

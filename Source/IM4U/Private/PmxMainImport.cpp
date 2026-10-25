@@ -23,7 +23,7 @@ TSharedPtr<FPmxImporter> FPmxImporter::StaticInstance;
 
 PMXImportOptions* GetImportOptions(
 	//class FPmxImporter* PmxImporter,
-	const class FPmxImporter* PmxImporter, //5.8
+	const class FPmxImporter* PmxImporter, //UE5.8
 	UPmxImportUI* ImportUI,
 	bool bShowOptionDialog,
 	const FString& FullPath,
@@ -112,7 +112,7 @@ PMXImportOptions* GetImportOptions(
 		{
 			IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
 			ParentWindow = MainFrame.GetParentWindow();//注释后无法导入模型
-			(void)MainFrame; //5.8 //parent window not needed; silence unused variable warnings
+			(void)MainFrame; //UE5.8 //parent window not needed; silence unused variable warnings
 		}
 
 		TSharedRef<SWindow> Window = SNew(SWindow)
@@ -278,7 +278,7 @@ void ApplyImportUIToImportOptions(
 TSharedPtr<FPmxImporter> FPmxImporter::StaticInstance;
 ////////////////////////////////////////////
 FPmxImporter::FPmxImporter()
-	:ImportOptions(nullptr)//5.8
+	:ImportOptions(nullptr)//UE5.8
 	/*
 	, Scene(NULL)
 	, GeometryConverter(NULL)
