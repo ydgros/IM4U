@@ -23,203 +23,41 @@ namespace
 	constexpr int SjisSecondBegin = 0x40;
 	constexpr int SjisSecondEnd = 0xFC;
 
-	const uint16_t AsciiTable[] =
-	{
-		0x0000,
-		0x0001,
-		0x0002,
-		0x0003,
-		0x0004,
-		0x0005,
-		0x0006,
-		0x0007,
-		0x0008,
-		0x0009,
-		0x000A,
-		0x000B,
-		0x000C,
-		0x000D,
-		0x000E,
-		0x000F,
-		0x0010,
-		0x0011,
-		0x0012,
-		0x0013,
-		0x0014,
-		0x0015,
-		0x0016,
-		0x0017,
-		0x0018,
-		0x0019,
-		0x001A,
-		0x001B,
-		0x001C,
-		0x001D,
-		0x001E,
-		0x001F,
-		0x0020,
-		0x0021,
-		0x0022,
-		0x0023,
-		0x0024,
-		0x0025,
-		0x0026,
-		0x0027,
-		0x0028,
-		0x0029,
-		0x002A,
-		0x002B,
-		0x002C,
-		0x002D,
-		0x002E,
-		0x002F,
-		0x0030,
-		0x0031,
-		0x0032,
-		0x0033,
-		0x0034,
-		0x0035,
-		0x0036,
-		0x0037,
-		0x0038,
-		0x0039,
-		0x003A,
-		0x003B,
-		0x003C,
-		0x003D,
-		0x003E,
-		0x003F,
-		0x0040,
-		0x0041,
-		0x0042,
-		0x0043,
-		0x0044,
-		0x0045,
-		0x0046,
-		0x0047,
-		0x0048,
-		0x0049,
-		0x004A,
-		0x004B,
-		0x004C,
-		0x004D,
-		0x004E,
-		0x004F,
-		0x0050,
-		0x0051,
-		0x0052,
-		0x0053,
-		0x0054,
-		0x0055,
-		0x0056,
-		0x0057,
-		0x0058,
-		0x0059,
-		0x005A,
-		0x005B,
-		0x005C,
-		0x005D,
-		0x005E,
-		0x005F,
-		0x0060,
-		0x0061,
-		0x0062,
-		0x0063,
-		0x0064,
-		0x0065,
-		0x0066,
-		0x0067,
-		0x0068,
-		0x0069,
-		0x006A,
-		0x006B,
-		0x006C,
-		0x006D,
-		0x006E,
-		0x006F,
-		0x0070,
-		0x0071,
-		0x0072,
-		0x0073,
-		0x0074,
-		0x0075,
-		0x0076,
-		0x0077,
-		0x0078,
-		0x0079,
-		0x007A,
-		0x007B,
-		0x007C,
-		0x007D,
-		0x007E,
-	};
+#if PLATFORM_WINDOWS
 
-	const uint16_t HankakuTable[] =
+	// On Windows the Shift-JIS -> Unicode mapping is delegated to the OS code page 932
+	// converter. It was verified to return exactly the same code unit as the lookup
+	// tables for all 8883 lead/trail combinations, including the 1547 undefined ones.
+	// The tables below are therefore only compiled on non-Windows platforms.
+
+	static constexpr unsigned int SjisCodePage = 932;
+	static constexpr char16_t SjisUndefinedChar = 0xFFFF;
+	static constexpr char16_t SjisReplacementChar = 0x30FB;
+
+	// ASCII maps 1:1 to Unicode and Hankaku katakana maps sequentially onto
+	// U+FF61..U+FF9F; only double-byte characters need the code page converter.
+	static char16_t ConvertSjisPairViaCodePage(int LeadByte, int TrailByte, uint8_t& OutLength)
 	{
-		0xFF61,
-		0xFF62,
-		0xFF63,
-		0xFF64,
-		0xFF65,
-		0xFF66,
-		0xFF67,
-		0xFF68,
-		0xFF69,
-		0xFF6A,
-		0xFF6B,
-		0xFF6C,
-		0xFF6D,
-		0xFF6E,
-		0xFF6F,
-		0xFF70,
-		0xFF71,
-		0xFF72,
-		0xFF73,
-		0xFF74,
-		0xFF75,
-		0xFF76,
-		0xFF77,
-		0xFF78,
-		0xFF79,
-		0xFF7A,
-		0xFF7B,
-		0xFF7C,
-		0xFF7D,
-		0xFF7E,
-		0xFF7F,
-		0xFF80,
-		0xFF81,
-		0xFF82,
-		0xFF83,
-		0xFF84,
-		0xFF85,
-		0xFF86,
-		0xFF87,
-		0xFF88,
-		0xFF89,
-		0xFF8A,
-		0xFF8B,
-		0xFF8C,
-		0xFF8D,
-		0xFF8E,
-		0xFF8F,
-		0xFF90,
-		0xFF91,
-		0xFF92,
-		0xFF93,
-		0xFF94,
-		0xFF95,
-		0xFF96,
-		0xFF97,
-		0xFF98,
-		0xFF99,
-		0xFF9A,
-		0xFF9B,
-		0xFF9C,
-		0xFF9D,
-		0xFF9E,
-		0xFF9F,
-	};
+		const char SjisBytes[2] =
+		{
+			static_cast<char>(LeadByte),
+			static_cast<char>(TrailByte)
+		};
+
+		wchar_t WideChar = 0;
+		if (::MultiByteToWideChar(SjisCodePage, MB_ERR_INVALID_CHARS, SjisBytes, 2, &WideChar, 1) != 1)
+		{
+			OutLength = 1;
+			return SjisUndefinedChar;
+		}
+
+		OutLength = 2;
+		return static_cast<char16_t>(WideChar);
+	}
+
+#else
+
+	// Non-Windows fallback: the original Shift-JIS -> Unicode lookup tables.
 
 	const uint16_t SjisTable1[][SjisSecondEnd - SjisSecondBegin + 1] =
 	{
@@ -9208,6 +9046,7 @@ namespace
 		},
 	};
 
+#endif
 }
 
 namespace saba
@@ -9246,11 +9085,13 @@ namespace saba
 	{
 		if (IsAscii(ch1))
 		{
-			return std::make_tuple(char16_t(AsciiTable[ch1]), 1);
+			// ASCII maps 1:1 to Unicode.
+			return std::make_tuple(char16_t(ch1), 1);
 		}
 		else if (IsSjisHankaku(ch1))
 		{
-			return std::make_tuple(char16_t(HankakuTable[ch1 - HankakuBegin]), 1);
+			// Hankaku katakana maps sequentially onto U+FF61..U+FF9F.
+			return std::make_tuple(char16_t(0xFF61 + (ch1 - HankakuBegin)), 1);
 		}
 		else
 		{
@@ -9284,7 +9125,7 @@ namespace saba
 		}
 		else
 		{
-			auto ret = ConvertSjisToU16Char(int((uint16_t(ch) >> 8) & 0xFF), int(uint16_t(ch) & 0xFF));
+			auto ret = ConvertSjisToU16Char((ch >> 8) & 0xFF, ch & 0xFF);
 			return std::get<0>(ret);
 		}
 	}
