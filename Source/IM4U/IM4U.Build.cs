@@ -20,10 +20,10 @@ namespace UnrealBuildTool.Rules
 		public IM4U(ReadOnlyTargetRules Target) : base(Target)
 		{
             // 使用引擎预编译头（与MMDCameraImporter一致），显著减少重复解析引擎头的时间
-            PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+            //PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 			// 保持Unity构建开启以提高编译吞吐；若需排查头文件依赖可临时设为false
-			bUseUnity = true;
+			//bUseUnity = true;
 
 			//string LibName; //not used
 			/*if ((Target.Platform == UnrealTargetPlatform.Win64 ))
@@ -41,7 +41,8 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
                 new string[] {
                     "IM4U/Private",
-					ThirdPartyPath+"/glm"
+					//ThirdPartyPath+"/glm"
+					Path.Combine(ThirdPartyPath, "glm")
 					// ... add other private include paths required here ...
 				}
                 );
