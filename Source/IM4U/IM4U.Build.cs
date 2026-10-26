@@ -67,11 +67,8 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"AssetTools",
-					"RawMesh",
-					"MessageLog",
 					"MainFrame",
 					"PropertyEditor",
-					"RHI",
 					"RenderCore",
 					"ContentBrowser",
 					"IKRig",
@@ -90,11 +87,6 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"Core",
-					"CoreUObject",
-					"Engine",
-					"EditorStyle",
-					"EditorWidgets",
 					"ApplicationCore",
 					"MeshDescription",
 					"MeshUtilities"
