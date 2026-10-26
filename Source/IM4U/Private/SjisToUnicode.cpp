@@ -6,11 +6,6 @@
 #include <string>
 #include <tuple>
 
-#if PLATFORM_WINDOWS
-	// MultiByteToWideChar / code page conversion
-	#include <windows.h>
-#endif
-
 namespace
 {
 	constexpr int ASCIIBegin = 0x00;
@@ -29,6 +24,7 @@ namespace
 	constexpr int SjisSecondEnd = 0xFC;
 
 #if PLATFORM_WINDOWS
+
 	// On Windows the Shift-JIS -> Unicode mapping is delegated to the OS code page 932
 	// converter. It was verified to return exactly the same code unit as the lookup
 	// tables for all 8883 lead/trail combinations, including the 1547 undefined ones.
@@ -48,16 +44,14 @@ namespace
 			static_cast<char>(TrailByte)
 		};
 
-		// The caller guarantees a well formed pair, so two bytes are always consumed
-		// even when the code page cannot map the sequence.
-		OutLength = 2;
-
 		wchar_t WideChar = 0;
 		if (::MultiByteToWideChar(SjisCodePage, MB_ERR_INVALID_CHARS, SjisBytes, 2, &WideChar, 1) != 1)
 		{
+			OutLength = 1;
 			return SjisUndefinedChar;
 		}
 
+		OutLength = 2;
 		return static_cast<char16_t>(WideChar);
 	}
 
@@ -9103,17 +9097,6 @@ namespace saba
 		{
 			int code1 = ch1;
 			int code2 = ch2;
-#if PLATFORM_WINDOWS
-			if ((IsSjis1stByte1(code1) || IsSjis1stByte2(code1)) && IsSjis2ndByte(code2))
-			{
-				// The pair is well formed, so it always consumes two bytes even when the
-				// code page has no mapping for it - matching the previous table behaviour.
-				uint8_t consumed = 2;
-				const char16_t converted = ConvertSjisPairViaCodePage(code1, code2, consumed);
-				return std::make_tuple(converted, consumed);
-			}
-			return std::make_tuple(SjisUndefinedChar, uint8_t(1));
-#else
 			if (IsSjis1stByte1(code1) && IsSjis2ndByte(code2))
 			{
 				code1 -= SjisFirstBegin1;
@@ -9130,7 +9113,6 @@ namespace saba
 			{
 				return std::make_tuple(char16_t(0xFFFF), 1);
 			}
-#endif
 		}
 	}
 
