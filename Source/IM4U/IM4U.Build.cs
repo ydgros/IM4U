@@ -40,9 +40,7 @@ namespace UnrealBuildTool.Rules
 
 			PrivateIncludePaths.AddRange(
                 new string[] {
-                    "IM4U/Private",
-					//ThirdPartyPath+"/glm"
-					Path.Combine(ThirdPartyPath, "glm")
+                    "IM4U/Private"
 					// ... add other private include paths required here ...
 				}
                 );

@@ -1,10 +1,6 @@
 // Copyright 2023 NaN_Name, Inc. All Rights Reserved.
 #include "PmxImporter.h"
 #include "MMDImportHelper.h"
-#include "glm/glm.hpp"
-#include "glm/vec2.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 
 namespace MMD4UE4
 {
@@ -851,12 +847,13 @@ namespace MMD4UE4
 				readBuffer(rb.Size); rb.Size *= modelScale;
 				readBuffer(rb.Position); rb.Position= ConvertVectorAsixToUE4FromMMD(rb.Position) * modelScale - bone.Position;
 				readBuffer(rb.Rotation); //rb.Rotation = ConvertVectorAsixToUE4FromMMD(rb.Rotation);
-				auto rx = glm::rotate(glm::mat4(1), rb.Rotation.X, glm::vec3(1, 0, 0));
-				auto ry = glm::rotate(glm::mat4(1), rb.Rotation.Y, glm::vec3(0, 1, 0));
-				auto rz = glm::rotate(glm::mat4(1), rb.Rotation.Z, glm::vec3(0, 0, 1));
-				glm::mat4 rotMat = ry * rx * rz;
-				glm::quat q(rotMat);
-				rb.Quat=FQuat(q.x, -q.z, q.y, q.w);
+				// Rotation is stored in radians and applied as Ry * Rx * Rz (same order as the
+				// former glm implementation), then converted to a quaternion directly.
+				const FQuat4f RotX(FVector3f(1.0f, 0.0f, 0.0f), rb.Rotation.X);
+				const FQuat4f RotY(FVector3f(0.0f, 1.0f, 0.0f), rb.Rotation.Y);
+				const FQuat4f RotZ(FVector3f(0.0f, 0.0f, 1.0f), rb.Rotation.Z);
+				const FQuat4f RotQuat = RotY * RotX * RotZ;
+				rb.Quat = FQuat(RotQuat.X, -RotQuat.Z, RotQuat.Y, RotQuat.W);
 				readBuffer(rb.Mass);
 				readBuffer(rb.PosDim);
 				readBuffer(rb.RotDim);
