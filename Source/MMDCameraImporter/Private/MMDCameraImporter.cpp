@@ -12,6 +12,8 @@
 #include "DesktopPlatformModule.h"
 #include "IDesktopPlatform.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
 
 DEFINE_LOG_CATEGORY(LogMMDCameraImporter);
 
@@ -205,14 +207,24 @@ void FMmdCameraImporterModule::RegisterMenus()
 	}
 #else 
 	{
-		const FName SequencerToolbarStyleName = "SequencerToolbar";
-
 		UToolMenu* SequencerMenu = UToolMenus::Get()->ExtendMenu("Sequencer.MainToolBar");
 		FToolMenuSection& Section = SequencerMenu->FindOrAddSection("MmdCameraImporterExtensions");
-		FToolMenuEntry Entry = FToolMenuEntry::InitToolBarButton(FMmdCameraImporterCommands::Get().ImportVmd);
-		Entry.StyleNameOverride = SequencerToolbarStyleName;
-		Entry.SetCommandList(PluginCommands);
-		Section.AddEntry(Entry);
+
+		// Plain text button: no icon slot is involved at all, so no SVG or image can appear.
+		Section.AddEntry(FToolMenuEntry::InitWidget(
+			"ImportVmdButton",
+			SNew(SButton)
+			.ContentPadding(FMargin(6.0f, 1.0f))
+			.OnClicked(FOnClicked::CreateLambda([this]()
+			{
+				PluginCommands->ExecuteAction(FMmdCameraImporterCommands::Get().ImportVmd.ToSharedRef());
+				return FReply::Handled();
+			}))
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ImportVmdLabel", "Import Camera VMD"))
+			],
+			LOCTEXT("ImportVmdLabel", "Import Camera VMD")));
 	}
 #endif
 }

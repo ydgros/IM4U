@@ -36,12 +36,9 @@ FName FMmdCameraImporterStyle::GetStyleSetName()
 
 TSharedRef<FSlateStyleSet> FMmdCameraImporterStyle::Create()
 {
-	const FVector2D Icon20X20(20.0f, 20.0f);
-
+	// No icon artwork is registered: the Import VMD tool bar entry is a plain text button.
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("MMDCameraImporterStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("IM4U")->GetBaseDir() / TEXT("Resources"));
-
-	Style->Set("MMDCameraImporter.ImportVmd", new IMAGE_BRUSH_SVG(TEXT("ImportVmd"), Icon20X20));
 
 	return Style;
 }
