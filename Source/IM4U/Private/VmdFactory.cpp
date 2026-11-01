@@ -2964,8 +2964,7 @@ bool UVmdFactory::BakeRigidBodyMotion(
 			if (!SimBones[j].bHasShape)
 			{
 				continue;
-			}
-			// 同组刚体在MMD中互不碰撞
+			}			// 同组刚体在MMD中互不碰撞
 			if (SimBones[i].GroupIndex == SimBones[j].GroupIndex)
 			{
 				continue;
@@ -2988,6 +2987,19 @@ bool UVmdFactory::BakeRigidBodyMotion(
 	UE_LOG(LogMMD4UE4_VMDFactory, Log,
 		TEXT("Rigid body collision: %d collidable bone pairs from %d bodies."),
 		CollisionPairCount, SimBones.Num());
+
+	for (const FSimBone& SimBone : SimBones)
+	{
+		UE_LOG(LogMMD4UE4_VMDFactory, Log,
+			TEXT("[collision] bone=%s group=%d target=0x%04X shape=%d size=%s"),
+			RefSkeleton.IsValidIndex(SimBone.BoneIndex)
+				? *RefSkeleton.GetBoneName(SimBone.BoneIndex).ToString()
+				: TEXT("None"),
+			SimBone.GroupIndex,
+			SimBone.GroupTarget,
+			SimBone.bHasShape ? SimBone.ShapeType : -1,
+			*SimBone.ShapeSize.ToString());
+	}
 
 	int32 BakedKeyCount = 0;
 	int32 CollisionCorrectionCount = 0;
