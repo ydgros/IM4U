@@ -159,6 +159,14 @@ struct FMMD_RigidBodyInfo
 	//0:Bone跟随 1:物理演算 2:物理演算+Bone位置合わせ
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
 	uint8 OpType = 0;
+
+	//剛体グループ番号(0~15)：同组刚体互不碰撞
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	uint8 GroupIndex = 0;
+
+	//剛体グループ対象：位掩码，bit i 置位表示与第i组碰撞
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	int32 GroupTarget = 0xFFFF;
 };
 
 //MMD Joint Info (PMX原值)

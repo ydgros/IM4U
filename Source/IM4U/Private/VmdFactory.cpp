@@ -1871,9 +1871,10 @@ void UVmdFactory::SolveIkForFrame(
 			const FQuat newWorldRot = addWorldRot * linkGlobal.GetRotation();
 			FQuat newLocalRot = parentGlobal.GetRotation().Inverse() * newWorldRot;
 
-			if (bApplyIKCollision && ikLink.RotLockFlag)
+			if (ikLink.RotLockFlag)
 			{
-				// 碰撞：把链接骨骼的旋转夹取到MMD角度限制范围内
+				// 骨骼约束：把链接骨骼的旋转夹取到MMD关节角度限制范围内。
+				// 这是IK链本身的约束，与是否启动物理碰撞无关，必须始终生效。
 				const FRotator localRotator(newLocalRot);
 				const FRotator clampedRotator(
 					FMath::Clamp(localRotator.Pitch, ikLink.RotLockMin.X, ikLink.RotLockMax.X),
@@ -2439,15 +2440,26 @@ bool UVmdFactory::BakeRigidBodyMotion(
 		int32 DriverBoneIndex = INDEX_NONE;
 		float AngularDamping = 0.9f;
 		float Recoil = 0.0f;
-		float LimitPitch = -1.0f;
-		float LimitYaw = -1.0f;
-		float LimitRoll = -1.0f;
 		FVector AngularVelocity = FVector::ZeroVector;
 		FQuat PrevRotation = FQuat::Identity;
 		// 层级深度：用于产生相位延迟与幅度衰减，避免整组骨骼同步摆动
 		int32 ChainDepth = 0;
 		// 每根骨骼独有的相位偏移（弧度）
 		float PhaseOffset = 0.0f;
+
+		// 骨骼约束：来自PMX关节的旋转限制范围（度，支持非对称）
+		bool bHasConstraint = false;
+		FVector ConstraintMin = FVector::ZeroVector;
+		FVector ConstraintMax = FVector::ZeroVector;
+
+		// 碰撞：MMD刚体组的形状与分组信息
+		uint8 GroupIndex = 0;
+		int32 GroupTarget = 0xFFFF;
+		uint8 ShapeType = 0;
+		FVector ShapeSize = FVector::ZeroVector;
+		FVector ShapeOffset = FVector::ZeroVector;
+		FQuat ShapeRotation = FQuat::Identity;
+		bool bHasShape = false;
 	};
 
 	TArray<FSimBone> SimBones;
@@ -2473,6 +2485,14 @@ bool UVmdFactory::BakeRigidBodyMotion(
 			// MMD RotDim(0~1，1=几乎不衰减) → UE阻尼语义换算
 			SimBone.AngularDamping = FMath::Clamp((1.0f - FMath::Clamp(RigidBodyInfo.RotDim, 0.0f, 1.0f)) * 2.0f, 0.0f, 1.0f);
 			SimBone.Recoil = RigidBodyInfo.Recoil;
+			// 碰撞信息：组号/掩码用于判断两个刚体是否互相碰撞，形状用于重叠检测
+			SimBone.GroupIndex = RigidBodyInfo.GroupIndex;
+			SimBone.GroupTarget = RigidBodyInfo.GroupTarget;
+			SimBone.ShapeType = RigidBodyInfo.ShapeType;
+			SimBone.ShapeSize = RigidBodyInfo.Size;
+			SimBone.ShapeOffset = RigidBodyInfo.Position;
+			SimBone.ShapeRotation = RigidBodyInfo.Rotation;
+			SimBone.bHasShape = true;
 			SimBones.Add(SimBone);
 		}
 
@@ -2494,13 +2514,11 @@ bool UVmdFactory::BakeRigidBodyMotion(
 				{
 					continue;
 				}
-				// 弧度 -> 度
-				SimBone.LimitPitch = FMath::RadiansToDegrees(FMath::Min(
-					FMath::Abs(JointInfo.ConstrainRotationMin.X), FMath::Abs(JointInfo.ConstrainRotationMax.X)));
-				SimBone.LimitYaw = FMath::RadiansToDegrees(FMath::Min(
-					FMath::Abs(JointInfo.ConstrainRotationMin.Y), FMath::Abs(JointInfo.ConstrainRotationMax.Y)));
-				SimBone.LimitRoll = FMath::RadiansToDegrees(FMath::Min(
-					FMath::Abs(JointInfo.ConstrainRotationMin.Z), FMath::Abs(JointInfo.ConstrainRotationMax.Z)));
+				// 弧度 -> 度，保留非对称范围（如 -30..+10）。
+				// 之前用 Min(|min|,|max|) 会把非对称限制退化成较小的那个绝对值。
+				SimBone.ConstraintMin = FMath::RadiansToDegrees(JointInfo.ConstrainRotationMin);
+				SimBone.ConstraintMax = FMath::RadiansToDegrees(JointInfo.ConstrainRotationMax);
+				SimBone.bHasConstraint = true;
 				break;
 			}
 		}
@@ -2527,7 +2545,37 @@ bool UVmdFactory::BakeRigidBodyMotion(
 			}
 			FSimBone SimBone;
 			SimBone.BoneIndex = BoneIndex;
+			// PhysicsAsset没有MMD的刚体分组信息，全部视为互相碰撞。
+			// GroupIndex只有低4位有效（MMD最多16组），按序号循环即可避免同组
+			SimBone.GroupIndex = static_cast<uint8>(SimBones.Num() & 0x0F);
+			SimBone.GroupTarget = 0xFFFF;
+			SimBone.GroupTarget = 0xFFFF;
 			SimBone.AngularDamping = FMath::Clamp(BodySetup->DefaultInstance.AngularDamping, 0.0f, 1.0f);
+			// 从BodySetup取出碰撞形状，用于烘焙时的重叠检测
+			for (const FKSphereElem& Sphere : BodySetup->AggGeom.SphereElems)
+			{
+				SimBone.ShapeType = 0;
+				SimBone.ShapeSize = FVector(Sphere.Radius);
+				SimBone.ShapeOffset = Sphere.Center;
+				SimBone.bHasShape = true;
+				break;
+			}
+			for (const FKBoxElem& Box : BodySetup->AggGeom.BoxElems)
+			{
+				SimBone.ShapeType = 1;
+				SimBone.ShapeSize = FVector(Box.X * 0.5f, Box.Y * 0.5f, Box.Z * 0.5f);
+				SimBone.ShapeOffset = Box.Center;
+				SimBone.bHasShape = true;
+				break;
+			}
+			for (const FKSphylElem& Capsule : BodySetup->AggGeom.SphylElems)
+			{
+				SimBone.ShapeType = 2;
+				SimBone.ShapeSize = FVector(Capsule.Radius, Capsule.Length * 0.5f, Capsule.Radius);
+				SimBone.ShapeOffset = Capsule.Center;
+				SimBone.bHasShape = true;
+				break;
+			}
 			SimBones.Add(SimBone);
 		}
 
@@ -2546,9 +2594,13 @@ bool UVmdFactory::BakeRigidBodyMotion(
 				{
 					continue;
 				}
-				SimBone.LimitPitch = Constraint.ProfileInstance.ConeLimit.Swing1LimitDegrees;
-				SimBone.LimitYaw = Constraint.ProfileInstance.ConeLimit.Swing2LimitDegrees;
-				SimBone.LimitRoll = Constraint.ProfileInstance.TwistLimit.TwistLimitDegrees;
+				// PhysicsAsset的约束是锥形+扭转限制，转换为对称的欧拉范围
+				const float Swing1 = Constraint.ProfileInstance.ConeLimit.Swing1LimitDegrees;
+				const float Swing2 = Constraint.ProfileInstance.ConeLimit.Swing2LimitDegrees;
+				const float Twist = Constraint.ProfileInstance.TwistLimit.TwistLimitDegrees;
+				SimBone.ConstraintMin = FVector(-Swing1, -Swing2, -Twist);
+				SimBone.ConstraintMax = FVector(Swing1, Swing2, Twist);
+				SimBone.bHasConstraint = true;
 				break;
 			}
 		}
@@ -2889,9 +2941,59 @@ bool UVmdFactory::BakeRigidBodyMotion(
 	// 但超过90度会让骨骼翻面自交。
 	const float MaxSwingDegrees = 45.0f;
 
-	int32 BakedKeyCount = 0;
-	for (FSimBone& SimBone : SimBones)
+	// 碰撞配对：MMD刚体的"非冲突组"用位掩码表示。
+	// GroupTarget 的 bit i 置位表示该刚体会与第 i 组的刚体碰撞。
+	// 预处理出每根骨骼的碰撞对手列表，避免逐帧重复判断。
+	struct FCollisionPair
 	{
+		int32 OtherSimIndex = INDEX_NONE;
+		int32 OtherBoneIndex = INDEX_NONE;
+	};
+	TArray<TArray<FCollisionPair>> CollisionPairs;
+	CollisionPairs.SetNum(SimBones.Num());
+
+	int32 CollisionPairCount = 0;
+	for (int32 i = 0; i < SimBones.Num(); ++i)
+	{
+		if (!SimBones[i].bHasShape)
+		{
+			continue;
+		}
+		for (int32 j = i + 1; j < SimBones.Num(); ++j)
+		{
+			if (!SimBones[j].bHasShape)
+			{
+				continue;
+			}
+			// 同组刚体在MMD中互不碰撞
+			if (SimBones[i].GroupIndex == SimBones[j].GroupIndex)
+			{
+				continue;
+			}
+			// GroupTarget 只有低16位有效，越界时不参与碰撞判断
+			const uint8 GroupI = SimBones[i].GroupIndex & 0x0F;
+			const uint8 GroupJ = SimBones[j].GroupIndex & 0x0F;
+			const bool bITargetsJ = (SimBones[i].GroupTarget & (1 << GroupJ)) != 0;
+			const bool bJTargetsI = (SimBones[j].GroupTarget & (1 << GroupI)) != 0;
+			if (!bITargetsJ && !bJTargetsI)
+			{
+				continue;
+			}
+			CollisionPairs[i].Add({ j, SimBones[j].BoneIndex });
+			CollisionPairs[j].Add({ i, SimBones[i].BoneIndex });
+			++CollisionPairCount;
+		}
+	}
+
+	UE_LOG(LogMMD4UE4_VMDFactory, Log,
+		TEXT("Rigid body collision: %d collidable bone pairs from %d bodies."),
+		CollisionPairCount, SimBones.Num());
+
+	int32 BakedKeyCount = 0;
+	int32 CollisionCorrectionCount = 0;
+	for (int32 SimBoneIndex = 0; SimBoneIndex < SimBones.Num(); ++SimBoneIndex)
+	{
+		FSimBone& SimBone = SimBones[SimBoneIndex];
 		if (!Tracks.IsValidIndex(SimBone.BoneIndex))
 		{
 			continue;
@@ -3041,34 +3143,32 @@ bool UVmdFactory::BakeRigidBodyMotion(
 
 			FVector SwingOffset = SimBone.AngularVelocity;
 
-			// 关节角度限制（软约束）：硬裁剪会让胸/发固定在同一饱和角度，
-			// 这里改为超出限制时按比例衰减，保留随动作变化的部分。
-			if (SimBone.LimitPitch > 0.1f)
+			// 骨骼约束：把摆动限制在PMX关节的旋转范围内（支持非对称，如 -30..+10）。
+			// 软约束：超出部分只保留15%，避免饱和成固定角度，保留随动作的变化。
+			if (SimBone.bHasConstraint)
 			{
-				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitPitch);
-				if (FMath::Abs(SwingOffset.X) > LimitRad)
+				auto ApplyConstraint = [](float ValueRad, float MinDeg, float MaxDeg) -> float
 				{
-					SwingOffset.X = FMath::Sign(SwingOffset.X) *
-						(LimitRad + (FMath::Abs(SwingOffset.X) - LimitRad) * 0.15f);
-				}
-			}
-			if (SimBone.LimitYaw > 0.1f)
-			{
-				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitYaw);
-				if (FMath::Abs(SwingOffset.Y) > LimitRad)
-				{
-					SwingOffset.Y = FMath::Sign(SwingOffset.Y) *
-						(LimitRad + (FMath::Abs(SwingOffset.Y) - LimitRad) * 0.15f);
-				}
-			}
-			if (SimBone.LimitRoll > 0.1f)
-			{
-				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitRoll);
-				if (FMath::Abs(SwingOffset.Z) > LimitRad)
-				{
-					SwingOffset.Z = FMath::Sign(SwingOffset.Z) *
-						(LimitRad + (FMath::Abs(SwingOffset.Z) - LimitRad) * 0.15f);
-				}
+					if (MinDeg < -179.0f && MaxDeg > 179.0f)
+					{
+						// 无限制
+						return ValueRad;
+					}
+					const float MinRad = FMath::DegreesToRadians(MinDeg);
+					const float MaxRad = FMath::DegreesToRadians(MaxDeg);
+					if (ValueRad < MinRad)
+					{
+						return MinRad + (ValueRad - MinRad) * 0.15f;
+					}
+					if (ValueRad > MaxRad)
+					{
+						return MaxRad + (ValueRad - MaxRad) * 0.15f;
+					}
+					return ValueRad;
+				};
+				SwingOffset.X = ApplyConstraint(SwingOffset.X, SimBone.ConstraintMin.X, SimBone.ConstraintMax.X);
+				SwingOffset.Y = ApplyConstraint(SwingOffset.Y, SimBone.ConstraintMin.Y, SimBone.ConstraintMax.Y);
+				SwingOffset.Z = ApplyConstraint(SwingOffset.Z, SimBone.ConstraintMin.Z, SimBone.ConstraintMax.Z);
 			}
 			PrevDriverTarget = DriverTarget;
 
@@ -3081,6 +3181,70 @@ bool UVmdFactory::BakeRigidBodyMotion(
 			SimBone.PrevRotation = SimRotation;
 			Track.RotKeys[Frame] = FQuat4f(SimRotation.GetNormalized());
 			++BakedKeyCount;
+
+			// 碰撞：若本刚体与其它刚体的形状重叠，把摆动沿重叠方向反向推回。
+			// 这是位置型软约束——只在真正穿插时生效，不会改变无接触时的摆动。
+			if (CollisionPairs[SimBoneIndex].Num() > 0)
+			{
+				const FVector ThisCenter = FVector(
+					Track.PosKeys[Frame]) + SimBone.ShapeOffset;
+				for (const FCollisionPair& Pair : CollisionPairs[SimBoneIndex])
+				{
+					if (!Tracks.IsValidIndex(Pair.OtherBoneIndex))
+					{
+						continue;
+					}
+					const FRawAnimSequenceTrack& OtherTrack = Tracks[Pair.OtherBoneIndex];
+					if (!OtherTrack.PosKeys.IsValidIndex(Frame) ||
+						!OtherTrack.RotKeys.IsValidIndex(Frame))
+					{
+						continue;
+					}
+					const FSimBone& Other = SimBones[Pair.OtherSimIndex];
+					const FVector OtherCenter = FVector(
+						OtherTrack.PosKeys[Frame]) + Other.ShapeOffset;
+
+					// 用包围球近似：半径取形状尺寸的最大分量
+					const float ThisRadius = FMath::Max3(
+						SimBone.ShapeSize.X, SimBone.ShapeSize.Y, SimBone.ShapeSize.Z);
+					const float OtherRadius = FMath::Max3(
+						Other.ShapeSize.X, Other.ShapeSize.Y, Other.ShapeSize.Z);
+					const float MinDist = ThisRadius + OtherRadius;
+					if (MinDist <= KINDA_SMALL_NUMBER)
+					{
+						continue;
+					}
+
+					const FVector Delta = ThisCenter - OtherCenter;
+					const float DistSq = Delta.SizeSquared();
+					if (DistSq >= MinDist * MinDist || DistSq <= KINDA_SMALL_NUMBER)
+					{
+						continue;
+					}
+
+					// 重叠深度（世界单位）→ 换算成绕碰撞法线的旋转修正量
+					const float Dist = FMath::Sqrt(DistSq);
+					const float Overlap = MinDist - Dist;
+					const FVector Normal = Delta / Dist;
+
+					// 以骨骼到形状中心的力臂近似换算角度，避免大骨骼被推爆
+					const float LeverArm = FMath::Max(SimBone.ShapeOffset.Size(), 1.0f);
+					const float PushRad = FMath::Clamp(Overlap / LeverArm, 0.0f, MaxSwingRad * 0.5f);
+					if (PushRad <= KINDA_SMALL_NUMBER)
+					{
+						continue;
+					}
+
+					// 把推回量投影到三个欧拉轴，直接修正已写入的旋转
+					const FVector PushEuler = FVector(
+						Normal.X * PushRad, Normal.Y * PushRad, Normal.Z * PushRad);
+					const FQuat CurrentRot = FQuat(Track.RotKeys[Frame]);
+					const FQuat Corrected = CurrentRot *
+						FQuat::MakeFromEuler(FMath::RadiansToDegrees(PushEuler));
+					Track.RotKeys[Frame] = FQuat4f(Corrected.GetNormalized());
+					++CollisionCorrectionCount;
+				}
+			}
 
 			// 驱动目标恒为0说明驱动骨骼选错或整段无运动
 			if (Frame % 120 == 1)
@@ -3098,10 +3262,11 @@ bool UVmdFactory::BakeRigidBodyMotion(
 	}
 
 	UE_LOG(LogMMD4UE4_VMDFactory, Log,
-		TEXT("Rigid body baked into animation: bones=%d, frames=%d, keys=%d"),
+		TEXT("Rigid body baked into animation: bones=%d, frames=%d, keys=%d, collisionCorrections=%d"),
 		SimBones.Num(),
 		SimFrameCount,
-		BakedKeyCount);
+		BakedKeyCount,
+		CollisionCorrectionCount);
 
 	// 摆动幅度汇总（用于确认烘焙是否产生了可见位移）
 	float MaxOverallSwing = 0.0f;

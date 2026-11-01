@@ -1370,6 +1370,8 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 			RigidBodyInfo.Recoil = PmxRigid.Recoil;
 			RigidBodyInfo.Friction = PmxRigid.Friction;
 			RigidBodyInfo.OpType = PmxRigid.OpType;
+			RigidBodyInfo.GroupIndex = PmxRigid.RigidBodyGroupIndex;
+			RigidBodyInfo.GroupTarget = PmxRigid.RigidBodyGroupTarget;
 		}
 
 		// 保存MMD原始关节数据（旋转限制/弹簧，供烘焙时做角度约束）
