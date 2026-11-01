@@ -23,6 +23,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/SkeletalBodySetup.h"
+#include "ObjectTools.h"
 #include "UObject/UObjectGlobals.h"
 #include "UObject/UnrealType.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -991,226 +992,6 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 
 	if (InParent != GetTransientPackage())
 	{
-		// Create PhysicsAsset if requested and if physics asset is nullptr
-		if (ImportUI->bCreatePhysicsAsset)
-		{
-			if (SkeletalMesh->GetPhysicsAsset() == nullptr)
-			{
-				FString ObjectName = FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
-				const FString AssetDirectory = GetMeshAssetDirectory(SkeletalMesh);
-				bool bPhysicsAssetCreated = false;
-				UPhysicsAsset * NewPhysicsAsset = CreateAsset<UPhysicsAsset>(
-					AssetDirectory, ObjectName, true, &bPhysicsAssetCreated);
-				if (!NewPhysicsAsset)
-				{
-					AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset", "Could not create Physics Asset ('{0}') for '{1}'"), FText::FromString(ObjectName), FText::FromString(SkeletalMesh->GetName()))),"FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset");
-				}
-				else
-				{
-					FPhysAssetCreateParams NewBodyData; 
-					//PmxPhysicsParam pmxpm;
-					NewBodyData.bDisableCollisionsByDefault = true;
-					NewBodyData.MinBoneSize = 2;
-					//NewBodyData.pMmdParam = &pmxpm;
-					FText CreationErrorMessage;
-					bool bSuccess
-						= FPhysicsAssetUtils::CreateFromSkeletalMesh(
-								NewPhysicsAsset, 
-								SkeletalMesh, 
-								NewBodyData, 
-								CreationErrorMessage
-								);
-					if (!bSuccess)
-					{
-						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage),"FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset");
-						// delete the asset since we could not have create physics asset
-						TArray<UObject*> ObjectsToDelete;
-						ObjectsToDelete.Add(NewPhysicsAsset);
-						ObjectTools::DeleteObjects(ObjectsToDelete, false);
-					}
-
-					if (!bSuccess)
-					{
-						NewPhysicsAsset = nullptr;
-					}
-					else
-					{
-						int bdn = NewPhysicsAsset->SkeletalBodySetups.Num();
-						for (int i = 0; i < bdn; i++)
-						{
-							TObjectPtr<USkeletalBodySetup>& bd = NewPhysicsAsset->SkeletalBodySetups[i];
-							USkeletalBodySetup* pbd = bd.Get();
-							if (!pbd)
-							{
-								continue;
-							}
-							FName bname = pbd->BoneName;// pbd->GetFName();
-							TArray<PMX_RIGIDBODY> rbs = pmxMeshInfoPtr->findRigid(bname);
- 
-							FKAggregateGeom& ag = pbd->AggGeom;
-							ag.EmptyElements();
-							if (rbs.Num()<1) {
-								FKBoxElem ke(0.5,0.5,1);
-								ag.BoxElems.Add(ke);
-								pbd->PhysicsType = PhysType_Kinematic; 
-								pbd->CollisionReponse = EBodyCollisionResponse::BodyCollision_Disabled;
-								ke.SetContributeToMass(false);
-								continue;
-							}
-							bool bHasDynamicBody = false;
-							float BodyLinearDamping = 0.0f;
-							float BodyAngularDamping = 0.0f;
-							for (auto rb:rbs) {
-								if (rb.OpType != 0 && rb.Mass >= 0.001f)
-								{
-									bHasDynamicBody = true;
-									BodyLinearDamping += FMath::Clamp(rb.PosDim, 0.0f, 1.0f);
-									BodyAngularDamping += FMath::Clamp(rb.RotDim, 0.0f, 1.0f);
-								}
-								FTransform ft;
-								ft.SetLocation((FVector3d)rb.Position); //UE5.8
-								ft.SetRotation(rb.Quat);
-								if (rb.ShapeType == 0) {
-									FKSphereElem ke(rb.Size.X);
-									ke.SetTransform(ft);
-									ke.SetContributeToMass(true);
-									ag.SphereElems.Add(ke);
-								}
-								else if (rb.ShapeType == 1) {
-									FKBoxElem ke(rb.Size.X , rb.Size.Z , rb.Size.Y );
-									ke.SetTransform(ft);
-									ke.SetContributeToMass(true);
-									ag.BoxElems.Add(ke);
-								}
-								else if (rb.ShapeType == 2) {
-									FKSphylElem ke(rb.Size.X, rb.Size.Y);
-									ke.SetTransform(ft);
-									ke.SetContributeToMass(true);
-									ag.SphylElems.Add(ke);
-								}
-							}
-							if (bHasDynamicBody)
-							{
-								pbd->PhysicsType = PhysType_Default;
-								pbd->CollisionReponse = EBodyCollisionResponse::BodyCollision_Enabled;
-								pbd->DefaultInstance.bEnableGravity = true;
-								pbd->DefaultInstance.LinearDamping = BodyLinearDamping / rbs.Num();
-								pbd->DefaultInstance.AngularDamping = BodyAngularDamping / rbs.Num();
-							}
-							else
-							{
-								pbd->PhysicsType = PhysType_Kinematic;
-								pbd->DefaultInstance.bEnableGravity = false;
-								pbd->CollisionReponse = EBodyCollisionResponse::BodyCollision_Enabled;
-							}
-						}
-#if 1
-					for (int i = 0; i < bdn; i++)
-						for (int j = i + 1; j < bdn; j++)
-							if (NewPhysicsAsset->SkeletalBodySetups[i] && NewPhysicsAsset->SkeletalBodySetups[j] &&
-								NewPhysicsAsset->SkeletalBodySetups[i]->PhysicsType != NewPhysicsAsset->SkeletalBodySetups[j]->PhysicsType)
-								NewPhysicsAsset->EnableCollision(j, i);
-							//else						NewPhysicsAsset->DisableCollision(j, i);
-#endif
-					//NewPhysicsAsset->ConstraintSetup.Empty();
-					int csn=NewPhysicsAsset->ConstraintSetup.Num();
-					
-					for (int i = 0; i < csn; i++)
-					{
-						if (!NewPhysicsAsset->ConstraintSetup[i])
-						{
-							continue;
-						}
-						FConstraintInstance &cs = NewPhysicsAsset->ConstraintSetup[i]->DefaultInstance;
-						//cs.ProfileInstance.AngularDrive.AngularDriveMode = EAngularDriveMode::TwistAndSwing;
-						cs.ProfileInstance.ConeLimit.Swing1Motion = EAngularConstraintMotion::ACM_Limited;
-						cs.ProfileInstance.ConeLimit.Swing2Motion = EAngularConstraintMotion::ACM_Limited;
-						cs.ProfileInstance.TwistLimit.TwistMotion = EAngularConstraintMotion::ACM_Limited;
-						cs.ProfileInstance.TwistLimit.TwistLimitDegrees = 0;
-						cs.ProfileInstance.ConeLimit.Swing1LimitDegrees = 25;
-						cs.ProfileInstance.ConeLimit.Swing2LimitDegrees = 5;
-
-						cs.SetDisableCollision(true);
-					}
-
-					for (const MMD4UE4::PMX_JOINT& PmxJoint : pmxMeshInfoPtr->jointList)
-					{
-						if (!pmxMeshInfoPtr->rigidList.IsValidIndex(PmxJoint.RigidBodyAIndex) ||
-							!pmxMeshInfoPtr->rigidList.IsValidIndex(PmxJoint.RigidBodyBIndex))
-						{
-							UE_LOG(LogMMD4UE4_PMXFactory, Warning,
-								TEXT("Skipping MMD joint '%s': rigid body index is invalid"),
-								*PmxJoint.Name);
-							continue;
-						}
-
-						const MMD4UE4::PMX_RIGIDBODY& RigidBodyA =
-							pmxMeshInfoPtr->rigidList[PmxJoint.RigidBodyAIndex];
-						const MMD4UE4::PMX_RIGIDBODY& RigidBodyB =
-							pmxMeshInfoPtr->rigidList[PmxJoint.RigidBodyBIndex];
-						if (RigidBodyA.BoneIndex >= static_cast<uint32>(pmxMeshInfoPtr->boneList.Num()) ||
-							RigidBodyB.BoneIndex >= static_cast<uint32>(pmxMeshInfoPtr->boneList.Num()))
-						{
-							continue;
-						}
-
-						const FName BoneA(*pmxMeshInfoPtr->boneList[RigidBodyA.BoneIndex].Name);
-						const FName BoneB(*pmxMeshInfoPtr->boneList[RigidBodyB.BoneIndex].Name);
-						if (BoneA.IsNone() || BoneB.IsNone() || BoneA == BoneB)
-						{
-							continue;
-						}
-
-						UPhysicsConstraintTemplate* JointTemplate =
-							NewObject<UPhysicsConstraintTemplate>(NewPhysicsAsset);
-						if (!JointTemplate)
-						{
-							continue;
-						}
-						FConstraintInstance& JointConstraint = JointTemplate->DefaultInstance;
-						JointConstraint.ConstraintBone1 = BoneA;
-						JointConstraint.ConstraintBone2 = BoneB;
-
-						JointConstraint.ProfileInstance.LinearLimit.XMotion =
-							ELinearConstraintMotion::LCM_Limited;
-						JointConstraint.ProfileInstance.LinearLimit.YMotion =
-							ELinearConstraintMotion::LCM_Limited;
-						JointConstraint.ProfileInstance.LinearLimit.ZMotion =
-							ELinearConstraintMotion::LCM_Limited;
-						JointConstraint.ProfileInstance.ConeLimit.Swing1Motion =
-							EAngularConstraintMotion::ACM_Limited;
-						JointConstraint.ProfileInstance.ConeLimit.Swing2Motion =
-							EAngularConstraintMotion::ACM_Limited;
-						JointConstraint.ProfileInstance.TwistLimit.TwistMotion =
-							EAngularConstraintMotion::ACM_Limited;
-						JointConstraint.ProfileInstance.ConeLimit.Swing1LimitDegrees =
-							FMath::RadiansToDegrees(FMath::Abs(PmxJoint.ConstrainRotationMax[0]));
-						JointConstraint.ProfileInstance.ConeLimit.Swing2LimitDegrees =
-							FMath::RadiansToDegrees(FMath::Abs(PmxJoint.ConstrainRotationMax[1]));
-						JointConstraint.ProfileInstance.TwistLimit.TwistLimitDegrees =
-							FMath::RadiansToDegrees(FMath::Max(
-								FMath::Abs(PmxJoint.ConstrainRotationMin[2]),
-								FMath::Abs(PmxJoint.ConstrainRotationMax[2])));
-						JointConstraint.SetDisableCollision(true);
-						NewPhysicsAsset->ConstraintSetup.Add(JointTemplate);
-					}
-
-					NewPhysicsAsset->MarkPackageDirty();
-					NewPhysicsAsset->PreEditChange(nullptr);
-					NewPhysicsAsset->PostEditChange();
-					SkeletalMesh->SetPhysicsAsset(NewPhysicsAsset);
-					SkeletalMesh->MarkPackageDirty();
-					if (bPhysicsAssetCreated)
-					{
-						FAssetRegistryModule::AssetCreated(NewPhysicsAsset);
-					}
-					}
-			
- 
-				}
-			}
-		}
-
 		// see if we have skeleton set up
 		// if creating skeleton, create skeleeton
 		USkeleton* Skeleton = nullptr;
@@ -1271,9 +1052,238 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 			{
 				FAssetRegistryModule::AssetCreated(Skeleton);
 			}
+
+			// Create PhysicsAsset here: FPhysicsAssetUtils::CreateFromSkeletalMesh
+			// requires the mesh to already have a valid skeleton.
+			if (ImportUI->bCreatePhysicsAsset && SkeletalMesh->GetPhysicsAsset() == nullptr)
+			{
+				const FString PhysicsObjectName =
+					FString::Printf(TEXT("%s_PhysicsAsset"), *SkeletalMesh->GetName());
+				const FString PhysicsAssetDirectory = GetMeshAssetDirectory(SkeletalMesh);
+				bool bPhysicsAssetCreated = false;
+				UPhysicsAsset* NewPhysicsAsset = CreateAsset<UPhysicsAsset>(
+					PhysicsAssetDirectory, PhysicsObjectName, true, &bPhysicsAssetCreated);
+				if (!NewPhysicsAsset)
+				{
+					AddTokenizedErrorMessage(
+						FTokenizedMessage::Create(
+							EMessageSeverity::Warning,
+							FText::Format(
+								LOCTEXT("FbxSkeletaLMeshimport_CouldNotCreatePhysicsAsset",
+									"Could not create Physics Asset ('{0}') for '{1}'"),
+								FText::FromString(PhysicsObjectName),
+								FText::FromString(SkeletalMesh->GetName()))),
+						"FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset");
+				}
+				else
+				{
+					FPhysAssetCreateParams NewBodyData;
+					NewBodyData.bDisableCollisionsByDefault = true;
+					NewBodyData.MinBoneSize = 2;
+					FText CreationErrorMessage;
+					if (!FPhysicsAssetUtils::CreateFromSkeletalMesh(
+							NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage))
+					{
+						AddTokenizedErrorMessage(
+							FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage),
+							"FFbxErrors::SkeletalMesh_FailedToCreatePhyscisAsset");
+						TArray<UObject*> ObjectsToDelete;
+						ObjectsToDelete.Add(NewPhysicsAsset);
+						ObjectTools::DeleteObjects(ObjectsToDelete, false);
+						NewPhysicsAsset = nullptr;
+					}
+
+					if (NewPhysicsAsset)
+					{
+						BuildMmdRigidBodies(NewPhysicsAsset, SkeletalMesh, pmxMeshInfoPtr);
+						NewPhysicsAsset->MarkPackageDirty();
+						NewPhysicsAsset->PreEditChange(nullptr);
+						NewPhysicsAsset->PostEditChange();
+						SkeletalMesh->SetPhysicsAsset(NewPhysicsAsset);
+						SkeletalMesh->MarkPackageDirty();
+						if (bPhysicsAssetCreated)
+						{
+							FAssetRegistryModule::AssetCreated(NewPhysicsAsset);
+						}
+					}
+				}
+			}
 		
 	}
 	return SkeletalMesh;
+}
+
+void UPmxFactory::BuildMmdRigidBodies(
+	UPhysicsAsset* PhysicsAsset,
+	USkeletalMesh* SkeletalMesh,
+	MMD4UE4::PmxMeshInfo* PmxMeshInfo)
+{
+	if (!PhysicsAsset || !SkeletalMesh || !PmxMeshInfo)
+	{
+		return;
+	}
+
+	const int32 BodySetupCount = PhysicsAsset->SkeletalBodySetups.Num();
+	for (int32 BodyIndex = 0; BodyIndex < BodySetupCount; ++BodyIndex)
+	{
+		USkeletalBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex].Get();
+		if (!BodySetup)
+		{
+			continue;
+		}
+
+		FKAggregateGeom& AggGeom = BodySetup->AggGeom;
+		AggGeom.EmptyElements();
+
+		const TArray<MMD4UE4::PMX_RIGIDBODY> RigidBodies = PmxMeshInfo->findRigid(BodySetup->BoneName);
+		if (RigidBodies.Num() < 1)
+		{
+			FKBoxElem Placeholder(0.5, 0.5, 1);
+			Placeholder.SetContributeToMass(false);
+			AggGeom.BoxElems.Add(Placeholder);
+			BodySetup->PhysicsType = PhysType_Kinematic;
+			BodySetup->CollisionReponse = EBodyCollisionResponse::BodyCollision_Disabled;
+			continue;
+		}
+
+		bool bHasDynamicBody = false;
+		float TotalLinearDamping = 0.0f;
+		float TotalAngularDamping = 0.0f;
+		int32 DynamicBodyCount = 0;
+
+		for (const MMD4UE4::PMX_RIGIDBODY& RigidBody : RigidBodies)
+		{
+			// OpType: 0=跟随骨骼(Kinematic), 1/2=物理演算(Dynamic)
+			const bool bRigidBodyDynamic = RigidBody.OpType != 0;
+			if (bRigidBodyDynamic)
+			{
+				bHasDynamicBody = true;
+				++DynamicBodyCount;
+				// MMD的“移动/回転減衰”(0~1)是每帧残留比例，映射到UE阻尼时需换算
+				TotalLinearDamping += FMath::Clamp(RigidBody.PosDim, 0.0f, 1.0f);
+				TotalAngularDamping += FMath::Clamp(RigidBody.RotDim, 0.0f, 1.0f);
+			}
+
+			FTransform ElementTransform;
+			ElementTransform.SetLocation(FVector(RigidBody.Position));
+			ElementTransform.SetRotation(RigidBody.Quat);
+
+			if (RigidBody.ShapeType == 0)
+			{
+				FKSphereElem Sphere(RigidBody.Size.X);
+				Sphere.SetTransform(ElementTransform);
+				Sphere.SetContributeToMass(bRigidBodyDynamic);
+				AggGeom.SphereElems.Add(Sphere);
+			}
+			else if (RigidBody.ShapeType == 1)
+			{
+				FKBoxElem Box(RigidBody.Size.X, RigidBody.Size.Z, RigidBody.Size.Y);
+				Box.SetTransform(ElementTransform);
+				Box.SetContributeToMass(bRigidBodyDynamic);
+				AggGeom.BoxElems.Add(Box);
+			}
+			else if (RigidBody.ShapeType == 2)
+			{
+				FKSphylElem Capsule(RigidBody.Size.X, RigidBody.Size.Y);
+				Capsule.SetTransform(ElementTransform);
+				Capsule.SetContributeToMass(bRigidBodyDynamic);
+				AggGeom.SphylElems.Add(Capsule);
+			}
+		}
+
+		if (bHasDynamicBody)
+		{
+			// PhysType_Simulated = "Do not follow owner, but simulate"，物理演算必须用它；
+			// PhysType_Default 表示跟随骨骼动画，会把物理结果覆盖掉。
+			BodySetup->PhysicsType = PhysType_Simulated;
+			BodySetup->CollisionReponse = EBodyCollisionResponse::BodyCollision_Enabled;
+			BodySetup->DefaultInstance.bEnableGravity = true;
+			// MMD 減衰=1.0 表示"每次迭代仅剩0%速度"，并非UE的阻尼满值；
+			// 直接代入会让刚体完全冻结，因此换算为(1-減衰)并限制上限。
+			const float MmdLinearDamp = TotalLinearDamping / DynamicBodyCount;
+			const float MmdAngularDamp = TotalAngularDamping / DynamicBodyCount;
+			BodySetup->DefaultInstance.LinearDamping =
+				FMath::Clamp((1.0f - MmdLinearDamp) * 2.0f, 0.0f, 2.0f);
+			BodySetup->DefaultInstance.AngularDamping =
+				FMath::Clamp((1.0f - MmdAngularDamp) * 2.0f, 0.0f, 2.0f);
+			UE_LOG(LogMMD4UE4_PMXFactory, Log,
+				TEXT("MMD rigid body [%s]: PhysicsType=%d (bodies=%d, damp lin=%.2f ang=%.2f)"),
+				*BodySetup->BoneName.ToString(),
+				static_cast<int32>(BodySetup->PhysicsType),
+				DynamicBodyCount,
+				BodySetup->DefaultInstance.LinearDamping,
+				BodySetup->DefaultInstance.AngularDamping);
+		}
+		else
+		{
+			BodySetup->PhysicsType = PhysType_Kinematic;
+			BodySetup->DefaultInstance.bEnableGravity = false;
+			BodySetup->CollisionReponse = EBodyCollisionResponse::BodyCollision_Enabled;
+		}
+	}
+
+	// Kinematic与Dynamic骨骼之间开启碰撞
+	for (int32 i = 0; i < BodySetupCount; ++i)
+	{
+		for (int32 j = i + 1; j < BodySetupCount; ++j)
+		{
+			if (PhysicsAsset->SkeletalBodySetups[i] && PhysicsAsset->SkeletalBodySetups[j] &&
+				PhysicsAsset->SkeletalBodySetups[i]->PhysicsType != PhysicsAsset->SkeletalBodySetups[j]->PhysicsType)
+			{
+				PhysicsAsset->EnableCollision(j, i);
+			}
+		}
+	}
+
+	// MMD关节 -> 角度限制约束
+	for (const MMD4UE4::PMX_JOINT& PmxJoint : PmxMeshInfo->jointList)
+	{
+		if (!PmxMeshInfo->rigidList.IsValidIndex(PmxJoint.RigidBodyAIndex) ||
+			!PmxMeshInfo->rigidList.IsValidIndex(PmxJoint.RigidBodyBIndex))
+		{
+			continue;
+		}
+
+		const MMD4UE4::PMX_RIGIDBODY& RigidBodyA = PmxMeshInfo->rigidList[PmxJoint.RigidBodyAIndex];
+		const MMD4UE4::PMX_RIGIDBODY& RigidBodyB = PmxMeshInfo->rigidList[PmxJoint.RigidBodyBIndex];
+		if (RigidBodyA.BoneIndex >= static_cast<uint32>(PmxMeshInfo->boneList.Num()) ||
+			RigidBodyB.BoneIndex >= static_cast<uint32>(PmxMeshInfo->boneList.Num()))
+		{
+			continue;
+		}
+
+		const FName BoneA(*PmxMeshInfo->boneList[RigidBodyA.BoneIndex].Name);
+		const FName BoneB(*PmxMeshInfo->boneList[RigidBodyB.BoneIndex].Name);
+		if (BoneA.IsNone() || BoneB.IsNone() || BoneA == BoneB)
+		{
+			continue;
+		}
+
+		UPhysicsConstraintTemplate* JointTemplate = NewObject<UPhysicsConstraintTemplate>(PhysicsAsset);
+		if (!JointTemplate)
+		{
+			continue;
+		}
+		FConstraintInstance& JointConstraint = JointTemplate->DefaultInstance;
+		JointConstraint.ConstraintBone1 = BoneA;
+		JointConstraint.ConstraintBone2 = BoneB;
+		JointConstraint.ProfileInstance.LinearLimit.XMotion = ELinearConstraintMotion::LCM_Limited;
+		JointConstraint.ProfileInstance.LinearLimit.YMotion = ELinearConstraintMotion::LCM_Limited;
+		JointConstraint.ProfileInstance.LinearLimit.ZMotion = ELinearConstraintMotion::LCM_Limited;
+		JointConstraint.ProfileInstance.ConeLimit.Swing1Motion = EAngularConstraintMotion::ACM_Limited;
+		JointConstraint.ProfileInstance.ConeLimit.Swing2Motion = EAngularConstraintMotion::ACM_Limited;
+		JointConstraint.ProfileInstance.TwistLimit.TwistMotion = EAngularConstraintMotion::ACM_Limited;
+		JointConstraint.ProfileInstance.ConeLimit.Swing1LimitDegrees =
+			FMath::RadiansToDegrees(FMath::Abs(PmxJoint.ConstrainRotationMax[0]));
+		JointConstraint.ProfileInstance.ConeLimit.Swing2LimitDegrees =
+			FMath::RadiansToDegrees(FMath::Abs(PmxJoint.ConstrainRotationMax[1]));
+		JointConstraint.ProfileInstance.TwistLimit.TwistLimitDegrees =
+			FMath::RadiansToDegrees(FMath::Max(
+				FMath::Abs(PmxJoint.ConstrainRotationMin[2]),
+				FMath::Abs(PmxJoint.ConstrainRotationMax[2])));
+		JointConstraint.SetDisableCollision(true);
+		PhysicsAsset->ConstraintSetup.Add(JointTemplate);
+	}
 }
 
 UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
@@ -1341,6 +1351,49 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 		//mapping
 		NewMMDExtendAsset->ModelName = PmxMeshInfo->modelNameJP;
 		NewMMDExtendAsset->ModelComment = FText::FromString( PmxMeshInfo->modelCommentJP);
+
+		// 保存MMD原始刚体数据（保留OpType/減衰等原值，供VMD导入时物理烘焙使用）
+		NewMMDExtendAsset->RigidBodyList.Reset();
+		NewMMDExtendAsset->RigidBodyList.Reserve(PmxMeshInfo->rigidList.Num());
+		for (const MMD4UE4::PMX_RIGIDBODY& PmxRigid : PmxMeshInfo->rigidList)
+		{
+			FMMD_RigidBodyInfo& RigidBodyInfo = NewMMDExtendAsset->RigidBodyList.AddDefaulted_GetRef();
+			RigidBodyInfo.Name = PmxRigid.Name;
+			RigidBodyInfo.BoneName = IM4U::MakeEngineSafeMmdBoneName(PmxRigid.fnName);
+			RigidBodyInfo.ShapeType = PmxRigid.ShapeType;
+			RigidBodyInfo.Size = FVector(PmxRigid.Size);
+			RigidBodyInfo.Position = FVector(PmxRigid.Position);
+			RigidBodyInfo.Rotation = PmxRigid.Quat;
+			RigidBodyInfo.Mass = PmxRigid.Mass;
+			RigidBodyInfo.PosDim = PmxRigid.PosDim;
+			RigidBodyInfo.RotDim = PmxRigid.RotDim;
+			RigidBodyInfo.Recoil = PmxRigid.Recoil;
+			RigidBodyInfo.Friction = PmxRigid.Friction;
+			RigidBodyInfo.OpType = PmxRigid.OpType;
+		}
+
+		// 保存MMD原始关节数据（旋转限制/弹簧，供烘焙时做角度约束）
+		NewMMDExtendAsset->JointList.Reset();
+		NewMMDExtendAsset->JointList.Reserve(PmxMeshInfo->jointList.Num());
+		for (const MMD4UE4::PMX_JOINT& PmxJoint : PmxMeshInfo->jointList)
+		{
+			FMMD_JointInfo& JointInfo = NewMMDExtendAsset->JointList.AddDefaulted_GetRef();
+			JointInfo.Name = PmxJoint.Name;
+			JointInfo.RigidBodyAIndex = PmxJoint.RigidBodyAIndex;
+			JointInfo.RigidBodyBIndex = PmxJoint.RigidBodyBIndex;
+			JointInfo.ConstrainRotationMin = FVector(
+				PmxJoint.ConstrainRotationMin[0], PmxJoint.ConstrainRotationMin[1], PmxJoint.ConstrainRotationMin[2]);
+			JointInfo.ConstrainRotationMax = FVector(
+				PmxJoint.ConstrainRotationMax[0], PmxJoint.ConstrainRotationMax[1], PmxJoint.ConstrainRotationMax[2]);
+			JointInfo.ConstrainPositionMin = FVector(
+				PmxJoint.ConstrainPositionMin[0], PmxJoint.ConstrainPositionMin[1], PmxJoint.ConstrainPositionMin[2]);
+			JointInfo.ConstrainPositionMax = FVector(
+				PmxJoint.ConstrainPositionMax[0], PmxJoint.ConstrainPositionMax[1], PmxJoint.ConstrainPositionMax[2]);
+			JointInfo.SpringRotation = FVector(
+				PmxJoint.SpringRotation[0], PmxJoint.SpringRotation[1], PmxJoint.SpringRotation[2]);
+			JointInfo.SpringPosition = FVector(
+				PmxJoint.SpringPosition[0], PmxJoint.SpringPosition[1], PmxJoint.SpringPosition[2]);
+		}
 		//
 		for (int boneIdx = 0; boneIdx < PmxMeshInfo->boneList.Num(); ++boneIdx)
 		{

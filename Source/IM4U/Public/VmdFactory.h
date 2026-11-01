@@ -49,8 +49,7 @@ protected:
 		UDataTable* ReNameTable,
 		UMMDExtendAsset* mmdExtend,
 		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-		bool bApplyIKCollision = true,
-		bool bCreateRigidBodyPhysics = true
+		bool bApplyIKCollision = true
 		);
 
 	UPROPERTY()
@@ -86,8 +85,7 @@ protected:
 		UIKRigDefinition* IKRig,
 		UMMDExtendAsset* mmdExtend,
 		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-		bool bApplyIKCollision = true,
-		bool bCreateRigidBodyPhysics = true
+		bool bApplyIKCollision = true
 		);
 
 	/*用MMDExtendAsset中的IK链对逐帧局部变换做CCD-IK求解（含碰撞角度限制）
@@ -114,14 +112,15 @@ protected:
 		bool bApplyIKCollision
 		);
 
-	/*刚体物理解算：用SkeletalMesh的MMD刚体PhysicsAsset模拟，把结果烘焙回动画曲线（跌倒/发丝等）
-	  没有任何Dynamic刚体时返回false，动画保持不变*/
-	bool BakeRigidBodySimulationToTracks(
+	/*刚体物理烘焙：用MMD刚体对Simulated骨骼做弹簧-阻尼+惯性演算，结果写入轨道
+	  没有任何Simulated刚体时返回false，轨道保持不变*/
+	bool BakeRigidBodyMotion(
 		USkeletalMesh* SkeletalMesh,
 		const FReferenceSkeleton& RefSkeleton,
 		TArray<FRawAnimSequenceTrack>& Tracks,
 		int32 NumFrames,
-		float FrameRate
+		float FrameRate,
+		UMMDExtendAsset* mmdExtend = nullptr
 		);
 
 	/*从MMD侧的名称检索并取得TableRow的UE侧名称*/
@@ -129,6 +128,13 @@ protected:
 		UDataTable* ReNameTable,
 		FName mmdName,
 		FName * ue4Name
+		);
+
+	/*解析VMD morph名到实际存在的MorphTarget名（名称表优先，回退原名/大小写不敏感/去前后缀）*/
+	FName ResolveMorphTargetName(
+		USkeletalMesh* MorphMesh,
+		UDataTable* ReNameTable,
+		const FString& VmdTrackName
 		);
 
 	/*从Bone名称中搜索并获取与RefSkelton匹配的BoneIndex*/

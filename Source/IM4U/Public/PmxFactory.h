@@ -112,7 +112,6 @@ protected: //UE5.8
 		const FString& InFilename,
 		int32 LODIndex, FSkeletalMeshImportData& BaseImportData
 		);
-
 	// Import Morph target
 	void ImportFbxMorphTarget(
 		//TArray<FbxNode*> &SkelMeshNodeArray,
@@ -126,6 +125,13 @@ protected: //UE5.8
 	void AddTokenizedErrorMessage(
 		TSharedRef<FTokenizedMessage> Error,
 		FName FbxErrorName
+		);
+
+	/* 用PMX刚体/关节数据填充PhysicsAsset（MMD刚体类型0=跟随骨骼,1/2=物理演算） */
+	void BuildMmdRigidBodies(
+		UPhysicsAsset* PhysicsAsset,
+		USkeletalMesh* SkeletalMesh,
+		MMD4UE4::PmxMeshInfo* PmxMeshInfo
 		);
 
 	UMMDExtendAsset * CreateMMDExtendFromMMDModel(

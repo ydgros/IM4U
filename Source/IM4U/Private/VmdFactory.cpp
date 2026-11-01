@@ -461,8 +461,7 @@ if (false)
 						ImportUI->MMD2UE4NameTableRow,
 						ImportUI->bSolveIK ? ImportUI->MmdExtendAsset : nullptr,
 						&vmdMotionInfo,
-						ImportUI->bApplyIKCollision,
-						ImportUI->bCreateRigidBodyPhysics
+						ImportUI->bApplyIKCollision
 					);
 				}
 				else
@@ -516,8 +515,7 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	UDataTable* ReNameTable,
 	UMMDExtendAsset* mmdExtend,
 	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-	bool bApplyIKCollision,
-	bool bCreateRigidBodyPhysics
+	bool bApplyIKCollision
 )
 {
 	UAnimSequence* LastCreatedAnim = nullptr;
@@ -616,7 +614,7 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	{
 		bool importSuccessFlag = true;
 		/*vmd animation regist*/
-		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo, bApplyIKCollision, bCreateRigidBodyPhysics))
+		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo, bApplyIKCollision))
 		{
 			//TBD::ERR case
 			check(false);
@@ -685,12 +683,6 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 			// mark package as dirty
 			//MarkPackageDirty();  //表达式未使用
 			//SkeletalMesh->MarkPackageDirty();
-			/* 刚体物理演算：模型已带MMD刚体PhysicsAsset时，标记mesh以便重建PhysicsState */
-			if (bCreateRigidBodyPhysics && IsValid(SkeletalMesh) && IsValid(SkeletalMesh->GetPhysicsAsset()))
-			{
-				SkeletalMesh->MarkPackageDirty();
-			}
-
 			LastCreatedAnim->PostEditChange();
 			LastCreatedAnim->SetPreviewMesh(SkeletalMesh);
 			LastCreatedAnim->MarkPackageDirty();
@@ -865,23 +857,12 @@ bool UVmdFactory::ImportMorphCurveToAnimSequence(
 	{
 		MMD4UE4::VmdFaceTrackList* vmdFaceTrackPtr = &vmdMotionInfo->keyFaceList[i];
 
-		// VMD stores the MMD-side name; resolve it to the UE morph target name.
-		FName Name = *vmdFaceTrackPtr->TrackName;
+		// 解析到实际存在的MorphTarget（名称表优先，回退原名）
+		FName Name = ResolveMorphTargetName(mesh, ReNameTable, vmdFaceTrackPtr->TrackName);
 		if (Name.IsNone())
 		{
-			UE_LOG(LogMMD4UE4_VMDFactory, Warning,
-				TEXT("Skipping VMD morph track with an empty name."));
-			continue;
-		}
-		FName MappedName;
-		if (FindTableRowMMD2UEName(ReNameTable, Name, &MappedName))
-		{
-			Name = MappedName;
-		}
-		if (Name.IsNone())
-		{
-			UE_LOG(LogMMD4UE4_VMDFactory, Warning,
-				TEXT("Skipping VMD morph track '%s': resolved curve name is empty."),
+			UE_LOG(LogMMD4UE4_VMDFactory, Log,
+				TEXT("Skipping VMD morph track '%s': no matching MorphTarget on mesh."),
 				*vmdFaceTrackPtr->TrackName);
 			continue;
 		}
@@ -992,13 +973,12 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 	UIKRigDefinition* IKRig,
 	UMMDExtendAsset* mmdExtend,
 	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-		bool bApplyIKCollision,
-		bool bCreateRigidBodyPhysics
+	bool bApplyIKCollision
 )
 {
-		if (!DestSeq || !Skeleton || !vmdMotionInfo)
-		{
-			UE_LOG(LogMMD4UE4_VMDFactory, Error,
+	if (!DestSeq || !Skeleton || !vmdMotionInfo)
+	{
+		UE_LOG(LogMMD4UE4_VMDFactory, Error,
 			//%p输出指针地址 %x输出无符号十六进制
 		       TEXT("ImportVMDToAnimSequence : Ref InParam is nullptr. DestSeq[%p],Skelton[%p],vmdMotionInfo[%p]"),
 		      DestSeq, Skeleton, vmdMotionInfo);
@@ -1479,27 +1459,16 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 		RefBonePose,
 		bApplyIKCollision);
 
-	/* 刚体物理解算：MMD刚体(Dynamic)骨骼做弹簧-阻尼演算，结果写回轨道 */
-	if (bCreateRigidBodyPhysics && IsValid(SkeletalMesh))
+	/* 刚体物理烘焙：把MMD刚体演算结果写入轨道，播放动画即带摆动 */
+	if (IsValid(SkeletalMesh))
 	{
-		const bool bBaked = BakeRigidBodySimulationToTracks(
+		BakeRigidBodyMotion(
 			SkeletalMesh,
 			Skeleton->GetReferenceSkeleton(),
 			TempRawTrackList,
 			NumSampleFrames,
-			ResampleRate);
-		UE_LOG(LogMMD4UE4_VMDFactory, Log,
-			TEXT("VMD rigid body simulation: enabled=%s, baked=%s, physicsAsset=%s"),
-			bCreateRigidBodyPhysics ? TEXT("yes") : TEXT("no"),
-			bBaked ? TEXT("yes") : TEXT("no"),
-			IsValid(SkeletalMesh->GetPhysicsAsset()) ? TEXT("valid") : TEXT("null"));
-	}
-	else
-	{
-		UE_LOG(LogMMD4UE4_VMDFactory, Log,
-			TEXT("VMD rigid body simulation skipped: flag=%s, mesh=%s"),
-			bCreateRigidBodyPhysics ? TEXT("on") : TEXT("off"),
-			IsValid(SkeletalMesh) ? TEXT("valid") : TEXT("null"));
+			ResampleRate,
+			mmdExtend);
 	}
 
 	/* AddTrack */
@@ -1515,6 +1484,7 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 			RawTrack.PosKeys.Num() > 0 ||
 			RawTrack.RotKeys.Num() > 0 ||
 			RawTrack.ScaleKeys.Num() > 0;
+		// 物理骨骼的摆动已烘焙进轨道，需要正常写入
 		if (bHasTrackKeys)
 		{
 			bool bTrackExists = false;
@@ -1633,22 +1603,17 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 				TEXT("Skipping VMD morph track with an empty name."));
 			continue;
 		}
-		FName MappedName;
-		if (FindTableRowMMD2UEName(ReNameTable, Name, &MappedName))
-		{
-			Name = MappedName;
-		}
+		// 解析到实际存在的MorphTarget（名称表优先，回退原名）
+		Name = ResolveMorphTargetName(MorphMesh, ReNameTable, vmdFaceTrackPtr->TrackName);
 		if (Name.IsNone())
 		{
-			UE_LOG(LogMMD4UE4_VMDFactory, Warning,
-				TEXT("Skipping VMD morph track '%s': resolved curve name is empty."),
+			UE_LOG(LogMMD4UE4_VMDFactory, Log,
+				TEXT("Skipping VMD morph track '%s': no matching MorphTarget on mesh."),
 				*vmdFaceTrackPtr->TrackName);
 			continue;
 		}
-		//self
 		if (MorphMesh != nullptr)
 		{
-
 			UMorphTarget* morphTargetPtr = MorphMesh->FindMorphTarget(Name);
 			if (!morphTargetPtr)
 			{
@@ -2235,6 +2200,57 @@ bool UVmdFactory::FindTableRowMMD2UEName(
 }
 
 /*
+解析VMD morph名 -> 实际MorphTarget名
+顺序：名称表映射 -> 原名 -> 名称表反向匹配
+@return 命中的名字；未命中返回NAME_None
+*/
+FName UVmdFactory::ResolveMorphTargetName(
+	USkeletalMesh* MorphMesh,
+	UDataTable* ReNameTable,
+	const FString& VmdTrackName
+)
+{
+	if (!IsValid(MorphMesh) || VmdTrackName.IsEmpty())
+	{
+		return NAME_None;
+	}
+
+	// 1) 名称表映射（MMD原名 -> UE名）
+	FName MappedName;
+	if (ReNameTable && FindTableRowMMD2UEName(ReNameTable, FName(*VmdTrackName), &MappedName))
+	{
+		if (MorphMesh->FindMorphTarget(MappedName))
+		{
+			return MappedName;
+		}
+	}
+
+	// 2) 直接用原名（PMX导入的MorphTarget就是原样命名，VMD也存原名，通常这一步命中）
+	const FName DirectName(*VmdTrackName);
+	if (MorphMesh->FindMorphTarget(DirectName))
+	{
+		return DirectName;
+	}
+
+	// 3) 名称表反向：VMD里存的名字可能已是UE名，需查回MMD原名再找
+	if (ReNameTable)
+	{
+		FString ContextString;
+		if (const FMMD2UE4NameTableRow* Row =
+			ReNameTable->FindRow<FMMD2UE4NameTableRow>(DirectName, ContextString))
+		{
+			const FName OriginalName(*Row->MmdOriginalName);
+			if (MorphMesh->FindMorphTarget(OriginalName))
+			{
+				return OriginalName;
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
+/*
 从Bone名称中搜索并获取与RefSkelton匹配的BoneIndex
 Return :index, -1 is not found
 @param :TargetName is Target Bone Name
@@ -2391,4 +2407,730 @@ bool UVmdFactory::ImportVmdFromFile(FString file, USkeletalMesh* SkeletalMesh) {
 	}
 	return false;
 }
+
+/*
+刚体物理烘焙
+把MMD刚体(PhysType_Simulated骨骼)的物理演算结果写入动画轨道，导入后播放即带摆动。
+演算模型：惯性跟随 + 回正重力 + 阻尼 + 关节角度限制(近似碰撞)。
+*/
+bool UVmdFactory::BakeRigidBodyMotion(
+	USkeletalMesh* SkeletalMesh,
+	const FReferenceSkeleton& RefSkeleton,
+	TArray<FRawAnimSequenceTrack>& Tracks,
+	int32 NumFrames,
+	float FrameRate,
+	UMMDExtendAsset* mmdExtend
+)
+{
+	if (!IsValid(SkeletalMesh) || NumFrames <= 1 || FrameRate <= 0.0f)
+	{
+		return false;
+	}
+	if (RefSkeleton.GetNum() <= 0 || Tracks.Num() <= 0)
+	{
+		return false;
+	}
+	const UPhysicsAsset* PhysicsAsset = SkeletalMesh->GetPhysicsAsset();
+
+	struct FSimBone
+	{
+		int32 BoneIndex = INDEX_NONE;
+		// 驱动源：最近的"非物理"祖先骨骼（VMD里有动画的那根）
+		int32 DriverBoneIndex = INDEX_NONE;
+		float AngularDamping = 0.9f;
+		float Recoil = 0.0f;
+		float LimitPitch = -1.0f;
+		float LimitYaw = -1.0f;
+		float LimitRoll = -1.0f;
+		FVector AngularVelocity = FVector::ZeroVector;
+		FQuat PrevRotation = FQuat::Identity;
+		// 层级深度：用于产生相位延迟与幅度衰减，避免整组骨骼同步摆动
+		int32 ChainDepth = 0;
+		// 每根骨骼独有的相位偏移（弧度）
+		float PhaseOffset = 0.0f;
+	};
+
+	TArray<FSimBone> SimBones;
+	const bool bUseExtendData = IsValid(mmdExtend) && mmdExtend->RigidBodyList.Num() > 0;
+
+	if (bUseExtendData)
+	{
+		// 优先使用MMDExtendAsset的MMD原始刚体数据（保留OpType/減衰真值）
+		for (const FMMD_RigidBodyInfo& RigidBodyInfo : mmdExtend->RigidBodyList)
+		{
+			// OpType: 0=骨骼跟随，1/2=物理演算
+			if (RigidBodyInfo.OpType == 0)
+			{
+				continue;
+			}
+			const int32 BoneIndex = RefSkeleton.FindBoneIndex(RigidBodyInfo.BoneName);
+			if (!RefSkeleton.IsValidIndex(BoneIndex))
+			{
+				continue;
+			}
+			FSimBone SimBone;
+			SimBone.BoneIndex = BoneIndex;
+			// MMD RotDim(0~1，1=几乎不衰减) → UE阻尼语义换算
+			SimBone.AngularDamping = FMath::Clamp((1.0f - FMath::Clamp(RigidBodyInfo.RotDim, 0.0f, 1.0f)) * 2.0f, 0.0f, 1.0f);
+			SimBone.Recoil = RigidBodyInfo.Recoil;
+			SimBones.Add(SimBone);
+		}
+
+		// 关节角度限制：用原始关节数据（比从PhysicsAsset反推更准）
+		for (const FMMD_JointInfo& JointInfo : mmdExtend->JointList)
+		{
+			if (!mmdExtend->RigidBodyList.IsValidIndex(JointInfo.RigidBodyAIndex) ||
+				!mmdExtend->RigidBodyList.IsValidIndex(JointInfo.RigidBodyBIndex))
+			{
+				continue;
+			}
+			const FName BoneA = mmdExtend->RigidBodyList[JointInfo.RigidBodyAIndex].BoneName;
+			const FName BoneB = mmdExtend->RigidBodyList[JointInfo.RigidBodyBIndex].BoneName;
+			const int32 BoneAIndex = RefSkeleton.FindBoneIndex(BoneA);
+			const int32 BoneBIndex = RefSkeleton.FindBoneIndex(BoneB);
+			for (FSimBone& SimBone : SimBones)
+			{
+				if (SimBone.BoneIndex != BoneAIndex && SimBone.BoneIndex != BoneBIndex)
+				{
+					continue;
+				}
+				// 弧度 -> 度
+				SimBone.LimitPitch = FMath::RadiansToDegrees(FMath::Min(
+					FMath::Abs(JointInfo.ConstrainRotationMin.X), FMath::Abs(JointInfo.ConstrainRotationMax.X)));
+				SimBone.LimitYaw = FMath::RadiansToDegrees(FMath::Min(
+					FMath::Abs(JointInfo.ConstrainRotationMin.Y), FMath::Abs(JointInfo.ConstrainRotationMax.Y)));
+				SimBone.LimitRoll = FMath::RadiansToDegrees(FMath::Min(
+					FMath::Abs(JointInfo.ConstrainRotationMin.Z), FMath::Abs(JointInfo.ConstrainRotationMax.Z)));
+				break;
+			}
+		}
+	}
+	else
+	{
+		// 回退：从PhysicsAsset读取（ExtendAsset未提供时）
+		if (!IsValid(PhysicsAsset))
+		{
+			UE_LOG(LogMMD4UE4_VMDFactory, Log,
+				TEXT("BakeRigidBodyMotion: no MMDExtendAsset and mesh has no physics asset."));
+			return false;
+		}
+		for (const TObjectPtr<USkeletalBodySetup>& BodySetup : PhysicsAsset->SkeletalBodySetups)
+		{
+			if (!IsValid(BodySetup) || BodySetup->PhysicsType != PhysType_Simulated)
+			{
+				continue;
+			}
+			const int32 BoneIndex = RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+			if (!RefSkeleton.IsValidIndex(BoneIndex))
+			{
+				continue;
+			}
+			FSimBone SimBone;
+			SimBone.BoneIndex = BoneIndex;
+			SimBone.AngularDamping = FMath::Clamp(BodySetup->DefaultInstance.AngularDamping, 0.0f, 1.0f);
+			SimBones.Add(SimBone);
+		}
+
+		for (const TObjectPtr<UPhysicsConstraintTemplate>& ConstraintTemplate : PhysicsAsset->ConstraintSetup)
+		{
+			if (!IsValid(ConstraintTemplate))
+			{
+				continue;
+			}
+			const FConstraintInstance& Constraint = ConstraintTemplate->DefaultInstance;
+			const int32 Bone1 = RefSkeleton.FindBoneIndex(Constraint.ConstraintBone1);
+			const int32 Bone2 = RefSkeleton.FindBoneIndex(Constraint.ConstraintBone2);
+			for (FSimBone& SimBone : SimBones)
+			{
+				if (SimBone.BoneIndex != Bone1 && SimBone.BoneIndex != Bone2)
+				{
+					continue;
+				}
+				SimBone.LimitPitch = Constraint.ProfileInstance.ConeLimit.Swing1LimitDegrees;
+				SimBone.LimitYaw = Constraint.ProfileInstance.ConeLimit.Swing2LimitDegrees;
+				SimBone.LimitRoll = Constraint.ProfileInstance.TwistLimit.TwistLimitDegrees;
+				break;
+			}
+		}
+	}
+
+	if (SimBones.Num() == 0)
+	{
+		UE_LOG(LogMMD4UE4_VMDFactory, Log,
+			TEXT("BakeRigidBodyMotion: no simulated body found (source=%s)."),
+			bUseExtendData ? TEXT("ExtendAsset") : TEXT("PhysicsAsset"));
+		return false;
+	}
+
+	// 为每根物理骨骼找驱动源：向上遍历所有祖先，选"旋转变化量最大"的那个。
+	// 头发/胸部自身在VMD里通常只有1帧，真正的运动来自身体（上半身/センター等），
+	// 而最近的祖先可能是不动的（如Root、おっぱい調整），必须按实际动画量挑选。
+	{
+		TSet<int32> SimulatedIndices;
+		for (const FSimBone& SimBone : SimBones)
+		{
+			if (RefSkeleton.IsValidIndex(SimBone.BoneIndex))
+			{
+				SimulatedIndices.Add(SimBone.BoneIndex);
+			}
+		}
+
+		// 预先算出每根骨骼的累计旋转变化量
+		TArray<float> MotionAmounts;
+		MotionAmounts.SetNumZeroed(Tracks.Num());
+		for (int32 BoneIndex = 0; BoneIndex < Tracks.Num(); ++BoneIndex)
+		{
+			const FRawAnimSequenceTrack& Track = Tracks[BoneIndex];
+			float TotalMotion = 0.0f;
+			const int32 KeyCount = Track.RotKeys.Num();
+			for (int32 Frame = 1; Frame < KeyCount; ++Frame)
+			{
+				const FQuat Delta = FQuat(Track.RotKeys[Frame - 1]).Inverse() * FQuat(Track.RotKeys[Frame]);
+				TotalMotion += Delta.GetAngle();
+			}
+			MotionAmounts[BoneIndex] = TotalMotion;
+		}
+
+		// 躯干骨骼优先级：胸部/头发挂在上半身上，应当由上半身驱动。
+		// 下半身/センター走路时摆幅通常更大，若与上半身同权会被误选，
+		// 导致胸部跟着骨盆扭动。数值越大越优先。
+		auto GetTorsoPriority = [&RefSkeleton](int32 BoneIndex) -> int32
+		{
+			if (!RefSkeleton.IsValidIndex(BoneIndex))
+			{
+				return 0;
+			}
+			const FString BoneName = RefSkeleton.GetBoneName(BoneIndex).ToString();
+			// 上半身系（含上半身2/3、chest、spine）最优先
+			static const TCHAR* UpperKeywords[] = {
+				TEXT("上半身"), TEXT("chest"), TEXT("spine")
+			};
+			for (const TCHAR* Keyword : UpperKeywords)
+			{
+				if (BoneName.Contains(Keyword))
+				{
+					return 2;
+				}
+			}
+			// 下半身/根干系次之
+			static const TCHAR* LowerKeywords[] = {
+				TEXT("下半身"), TEXT("センター"), TEXT("center"), TEXT("腰"), TEXT("hips")
+			};
+			for (const TCHAR* Keyword : LowerKeywords)
+			{
+				if (BoneName.Contains(Keyword))
+				{
+					return 1;
+				}
+			}
+			return 0;
+		};
+
+		// 头部/颈部骨骼：不应作为胸部或头发的驱动源。
+		// 「頭」在动作里摆动幅度往往最大，若不排除会被优先选中。
+		auto IsHeadBone = [&RefSkeleton](int32 BoneIndex) -> bool
+		{
+			if (!RefSkeleton.IsValidIndex(BoneIndex))
+			{
+				return false;
+			}
+			const FString BoneName = RefSkeleton.GetBoneName(BoneIndex).ToString();
+			return BoneName == TEXT("頭") || BoneName == TEXT("首") ||
+				BoneName.Contains(TEXT("neck")) || BoneName.Contains(TEXT("head"));
+		};
+
+		for (FSimBone& SimBone : SimBones)
+		{
+			int32 BestBone = INDEX_NONE;
+			float BestMotion = 0.0f;
+			if (!RefSkeleton.IsValidIndex(SimBone.BoneIndex))
+			{
+				SimBone.DriverBoneIndex = INDEX_NONE;
+				continue;
+			}
+			int32 ParentIndex = RefSkeleton.GetParentIndex(SimBone.BoneIndex);
+			while (ParentIndex != INDEX_NONE && RefSkeleton.IsValidIndex(ParentIndex))
+			{
+				if (!SimulatedIndices.Contains(ParentIndex) && MotionAmounts.IsValidIndex(ParentIndex))
+				{
+					// 躯干分级加权：上半身 > 下半身/センター > 其它。
+					// 只加权不加层级会让下半身（摆幅更大）抢走胸部驱动源。
+					float Weighted = MotionAmounts[ParentIndex];
+					// 优先级必须绝对压过运动量差异（运动量最大约几千度）
+					Weighted += GetTorsoPriority(ParentIndex) * 100000.0f;
+					if (IsHeadBone(ParentIndex))
+					{
+						// 头部大幅摆动不应驱动胸部，权重压到躯干之下
+						Weighted *= 0.1f;
+					}
+					if (Weighted > BestMotion)
+					{
+						BestMotion = Weighted;
+						BestBone = ParentIndex;
+					}
+				}
+				ParentIndex = RefSkeleton.GetParentIndex(ParentIndex);
+			}
+
+			// 祖先里没有任何运动时，退而使用"最近的祖先"，绝不跨到无关骨骼
+			// （曾经错误地挑了全身运动最大的骨骼，导致胸部绑到左肘等无关部位）
+			if (BestBone == INDEX_NONE)
+			{
+				int32 FallbackIndex = RefSkeleton.GetParentIndex(SimBone.BoneIndex);
+				while (FallbackIndex != INDEX_NONE && RefSkeleton.IsValidIndex(FallbackIndex))
+				{
+					if (!SimulatedIndices.Contains(FallbackIndex))
+					{
+						BestBone = FallbackIndex;
+						break;
+					}
+					FallbackIndex = RefSkeleton.GetParentIndex(FallbackIndex);
+				}
+			}
+
+			// 若选出的驱动源本身不运动（如Root），借用同组里运动量最大的驱动源。
+			// 胸部骨骼的父链常常直接挂到始终静止的Root，导致摆动恒为0。
+			if (BestBone == INDEX_NONE ||
+				(MotionAmounts.IsValidIndex(BestBone) &&
+					MotionAmounts[BestBone] <= KINDA_SMALL_NUMBER))
+			{
+				// 在本骨骼的"祖先前缀"范围内，找已被其他物理骨骼选中的、有运动的驱动源
+				TSet<int32> AncestorSet;
+				int32 Walk = SimBone.BoneIndex;
+				while (Walk != INDEX_NONE && RefSkeleton.IsValidIndex(Walk))
+				{
+					AncestorSet.Add(Walk);
+					Walk = RefSkeleton.GetParentIndex(Walk);
+				}
+
+				int32 BestFallback = INDEX_NONE;
+				float BestFallbackMotion = 0.0f;
+				for (int32 OtherIndex = 0; OtherIndex < SimBones.Num(); ++OtherIndex)
+				{
+					const int32 OtherDriver = SimBones[OtherIndex].DriverBoneIndex;
+					if (OtherDriver == INDEX_NONE ||
+						!MotionAmounts.IsValidIndex(OtherDriver) ||
+						MotionAmounts[OtherDriver] <= BestFallbackMotion)
+					{
+						continue;
+					}
+					if (AncestorSet.Contains(OtherDriver))
+					{
+						BestFallback = OtherDriver;
+						BestFallbackMotion = MotionAmounts[OtherDriver];
+					}
+				}
+
+				// 祖先里仍无运动源时，退而在"躯干"范围内选，绝不选四肢
+				// （曾经选中左ひじ等手臂骨骼，导致胸部跟着手臂反向摆动）
+				if (BestFallback == INDEX_NONE)
+				{
+					auto IsLimbBone = [&RefSkeleton](int32 BoneIndex) -> bool
+					{
+						static const TCHAR* LimbKeywords[] = {
+							TEXT("腕"), TEXT("ひじ"), TEXT("手首"), TEXT("手先"), TEXT("指"),
+							TEXT("足"), TEXT("ひざ"), TEXT("足首"), TEXT("つま先"),
+							TEXT("肩"), TEXT("肘"), TEXT("腕捩"), TEXT("手捩")
+						};
+						const FString BoneName = RefSkeleton.GetBoneName(BoneIndex).ToString();
+						for (const TCHAR* Keyword : LimbKeywords)
+						{
+							if (BoneName.Contains(Keyword))
+							{
+								return true;
+							}
+						}
+						return false;
+					};
+
+					for (int32 BoneIndex = 0; BoneIndex < MotionAmounts.Num(); ++BoneIndex)
+					{
+						if (SimulatedIndices.Contains(BoneIndex) || IsLimbBone(BoneIndex))
+						{
+							continue;
+						}
+						// 头部同样不能驱动胸部/头发，否则胸部会跟着点头摆动
+						if (IsHeadBone(BoneIndex))
+						{
+							continue;
+						}
+						float Weighted =
+							MotionAmounts[BoneIndex] + GetTorsoPriority(BoneIndex) * 100000.0f;
+						if (Weighted > BestFallbackMotion)
+						{
+							BestFallbackMotion = Weighted;
+							BestFallback = BoneIndex;
+						}
+					}
+				}
+				BestBone = BestFallback;
+			}
+			SimBone.DriverBoneIndex = BestBone;
+
+			UE_LOG(LogMMD4UE4_VMDFactory, Log,
+				TEXT("[driver] bone=%s -> driver=%s motion=%.1f"),
+				*RefSkeleton.GetBoneName(SimBone.BoneIndex).ToString(),
+				RefSkeleton.IsValidIndex(BestBone)
+					? *RefSkeleton.GetBoneName(BestBone).ToString()
+					: TEXT("None"),
+				MotionAmounts.IsValidIndex(BestBone) ? FMath::RadiansToDegrees(MotionAmounts[BestBone]) : 0.0f);
+		}
+
+		// 链深：祖先中物理骨骼的数量（左胸上=0、左胸=1、左胸下=2…）。
+		// 用于让同族骨骼产生幅度/相位的层次差异，而不是整齐划一地摆。
+		for (FSimBone& SimBone : SimBones)
+		{
+			int32 Depth = 0;
+			int32 Walk = RefSkeleton.IsValidIndex(SimBone.BoneIndex)
+				? RefSkeleton.GetParentIndex(SimBone.BoneIndex)
+				: INDEX_NONE;
+			while (Walk != INDEX_NONE && RefSkeleton.IsValidIndex(Walk))
+			{
+				if (SimulatedIndices.Contains(Walk))
+				{
+					++Depth;
+				}
+				Walk = RefSkeleton.GetParentIndex(Walk);
+			}
+			SimBone.ChainDepth = Depth;
+		}
+		// 按"骨骼名同族"统一驱动源：左胸上/左胸/左胸下等共享同一基础名，
+		// 且其中至少有一个能正确找到躯干驱动源；其余成员沿用该驱动源，
+		// 避免个别骨骼（如左胸，父级直连Root）被错误绑到頭部/手臂。
+		{
+			// 去掉方位/序号后缀，得到基础名
+			auto MakeBaseBoneName = [&RefSkeleton](int32 BoneIndex) -> FString
+			{
+				if (!RefSkeleton.IsValidIndex(BoneIndex))
+				{
+					return FString();
+				}
+				FString BaseName = RefSkeleton.GetBoneName(BoneIndex).ToString();
+				static const TCHAR* Suffixes[] = {
+					TEXT("上"), TEXT("下"), TEXT("前"), TEXT("後"), TEXT("左"), TEXT("右"),
+					TEXT("先"), TEXT("2"), TEXT("3"), TEXT("4"), TEXT("5")
+				};
+				for (const TCHAR* Suffix : Suffixes)
+				{
+					if (BaseName.EndsWith(Suffix))
+					{
+						BaseName.LeftChopInline(FCString::Strlen(Suffix));
+						break;
+					}
+				}
+				return BaseName;
+			};
+
+			// 每族选出驱动源：优先躯干骨骼，其次运动量最大
+			TMap<FString, int32> FamilyBestDriver;
+			TMap<FString, float> FamilyBestMotion;
+			for (const FSimBone& SimBone : SimBones)
+			{
+				const FString Family = MakeBaseBoneName(SimBone.BoneIndex);
+				if (Family.IsEmpty())
+				{
+					continue;
+				}
+				const int32 Driver = SimBone.DriverBoneIndex;
+				if (!MotionAmounts.IsValidIndex(Driver))
+				{
+					continue;
+				}
+
+				// 躯干驱动源权重远高于其它骨骼（頭/手臂等），避免胸部跟着头摆
+				// 与驱动源选择保持一致的躯干分级权重
+				const float Motion =
+					MotionAmounts[Driver] + GetTorsoPriority(Driver) * 100000.0f;
+
+				float& BestMotion = FamilyBestMotion.FindOrAdd(Family, -1.0f);
+				if (Motion > BestMotion)
+				{
+					BestMotion = Motion;
+					FamilyBestDriver.Add(Family, Driver);
+				}
+			}
+
+			// 全族统一使用该驱动源
+			for (FSimBone& SimBone : SimBones)
+			{
+				const FString Family = MakeBaseBoneName(SimBone.BoneIndex);
+				if (const int32* BestDriver = FamilyBestDriver.Find(Family))
+				{
+					// 只有当该族存在"有运动"的驱动源时才统一
+					const float BestMotion = FamilyBestMotion.FindRef(Family);
+					if (BestMotion > KINDA_SMALL_NUMBER)
+					{
+						SimBone.DriverBoneIndex = *BestDriver;
+					}
+				}
+			}
+		}
+	}
+
+	UE_LOG(LogMMD4UE4_VMDFactory, Log,
+		TEXT("BakeRigidBodyMotion: %d simulated bones from %s."),
+		SimBones.Num(),
+		bUseExtendData ? TEXT("MMDExtendAsset") : TEXT("PhysicsAsset"));
+
+	// 模拟帧数只由传入的帧数决定（Tracks.Num() 是骨骼数量，不能用作帧数上限）
+	const int32 SimFrameCount = NumFrames;
+	if (SimFrameCount <= 1)
+	{
+		return false;
+	}
+
+	// 弹簧跟随模型：摆动偏移(rad)被拉向"驱动骨骼相对参考姿势的旋转偏差"，
+	// 用欠阻尼弹簧产生过冲与回弹，模拟MMD刚体的软体摆动。
+	// 之前用"驱动角速度逐帧累加"是错误的：累加量不会归零，会单方向无限漂移
+	// （实测冲到148度），而且叠加在动画姿势上形成二次积分。
+	const float FollowStiffness = 0.22f;   // 追随目标的速度（每帧向目标靠拢的比例）
+	const float FollowDamping = 0.55f;     // 阻尼：保留速度的比例，越大越"飘"
+	// 单帧最大摆动角度（度）。MMD胸部骨骼极短，需要较大角度才有可见位移，
+	// 但超过90度会让骨骼翻面自交。
+	const float MaxSwingDegrees = 45.0f;
+
+	int32 BakedKeyCount = 0;
+	for (FSimBone& SimBone : SimBones)
+	{
+		if (!Tracks.IsValidIndex(SimBone.BoneIndex))
+		{
+			continue;
+		}
+		FRawAnimSequenceTrack& Track = Tracks[SimBone.BoneIndex];
+
+		// 物理骨骼可能没有VMD轨道（或只有少量关键帧），先补齐整段帧。
+		// 无轨道时用参考姿势的局部变换作为基准，否则摆动会以Identity为中心。
+		// 注意：SetBoneTrackKeys要求pos/rot/scale三组键数量一致，必须一起补齐。
+		const int32 PrevKeyCount = Track.RotKeys.Num();
+		if (PrevKeyCount < SimFrameCount)
+		{
+			FQuat FillRotation = FQuat::Identity;
+			FVector3f FillTranslation = FVector3f::ZeroVector;
+			FVector3f FillScale = FVector3f::OneVector;
+			if (PrevKeyCount > 0)
+			{
+				FillRotation = FQuat(Track.RotKeys[PrevKeyCount - 1]);
+				if (Track.PosKeys.IsValidIndex(PrevKeyCount - 1))
+				{
+					FillTranslation = Track.PosKeys[PrevKeyCount - 1];
+				}
+				if (Track.ScaleKeys.IsValidIndex(PrevKeyCount - 1))
+				{
+					FillScale = Track.ScaleKeys[PrevKeyCount - 1];
+				}
+			}
+			else if (RefSkeleton.IsValidIndex(SimBone.BoneIndex))
+			{
+				const FTransform& RefTransform = RefSkeleton.GetRefBonePose()[SimBone.BoneIndex];
+				FillRotation = RefTransform.GetRotation();
+				FillTranslation = FVector3f(RefTransform.GetTranslation());
+				FillScale = FVector3f(RefTransform.GetScale3D());
+			}
+
+			Track.RotKeys.SetNum(SimFrameCount);
+			Track.PosKeys.SetNum(SimFrameCount);
+			Track.ScaleKeys.SetNum(SimFrameCount);
+			for (int32 Frame = PrevKeyCount; Frame < SimFrameCount; ++Frame)
+			{
+				Track.RotKeys[Frame] = FQuat4f(FillRotation);
+				Track.PosKeys[Frame] = FillTranslation;
+				Track.ScaleKeys[Frame] = FillScale;
+			}
+		}
+
+		// 驱动骨骼的动画轨迹（身体运动 -> 头发/胸部甩动）
+		const FRawAnimSequenceTrack* DriverTrack =
+			Tracks.IsValidIndex(SimBone.DriverBoneIndex) ? &Tracks[SimBone.DriverBoneIndex] : nullptr;
+
+		// 驱动骨骼的局部旋转常常几乎不变，真正的朝向由祖先累积而来
+		// （例如上半身的旋转挂在センター/下半身上）。这里预先算出驱动骨骼
+		// 到根链上所有骨骼的索引，用于按帧累积世界朝向。
+		TArray<int32> DriverChain;
+		for (int32 Walk = SimBone.DriverBoneIndex; Walk != INDEX_NONE && RefSkeleton.IsValidIndex(Walk);
+			Walk = RefSkeleton.GetParentIndex(Walk))
+		{
+			DriverChain.Add(Walk);
+		}
+
+		// 按帧取驱动骨骼的累积旋转（驱动链上各骨骼局部旋转的乘积）
+		auto GetDriverCumulativeAt = [&DriverChain, &Tracks](int32 AnyFrame) -> FQuat
+		{
+			FQuat Accum = FQuat::Identity;
+			for (const int32 ChainBone : DriverChain)
+			{
+				if (!Tracks.IsValidIndex(ChainBone))
+				{
+					continue;
+				}
+				const FRawAnimSequenceTrack& ChainTrack = Tracks[ChainBone];
+				if (ChainTrack.RotKeys.Num() == 0)
+				{
+					continue;
+				}
+				const int32 Clamped = FMath::Clamp(AnyFrame, 0, ChainTrack.RotKeys.Num() - 1);
+				Accum = Accum * FQuat(ChainTrack.RotKeys[Clamped]);
+			}
+			return Accum;
+		};
+
+		// 驱动骨骼在帧0的累积朝向，作为摆动偏差的基准
+		const FQuat DriverStartCumulative = GetDriverCumulativeAt(0);
+
+		// 驱动轨道帧数可能与模拟帧数不同（如582 vs 154），需按比例映射
+		const int32 DriverKeyCount = DriverTrack ? DriverTrack->RotKeys.Num() : 0;
+		auto MapToDriverFrame = [DriverKeyCount, SimFrameCount](int32 SimFrame) -> int32
+		{
+			if (DriverKeyCount <= 1)
+			{
+				return INDEX_NONE;
+			}
+			const int32 Mapped = FMath::RoundToInt(
+				static_cast<float>(SimFrame) * static_cast<float>(DriverKeyCount - 1) /
+				static_cast<float>(FMath::Max(SimFrameCount - 1, 1)));
+			return FMath::Clamp(Mapped, 0, DriverKeyCount - 1);
+		};
+
+		// 上一帧的驱动目标（rad，欧拉角差分），用于求变化率
+		FVector PrevDriverTarget = FVector::ZeroVector;
+		// 摆动速度（rad/帧），弹簧系统的状态量
+		FVector SwingVelocity = FVector::ZeroVector;
+
+		SimBone.PrevRotation = FQuat(Track.RotKeys[0]);
+		for (int32 Frame = 1; Frame < SimFrameCount; ++Frame)
+		{
+			const FQuat AnimRotation = FQuat(Track.RotKeys[Frame]);
+
+			// 本帧的驱动目标：驱动骨骼的"世界朝向"相对起始朝向的旋转偏差。
+			// 用累积旋转而非局部旋转，因为躯干的旋转往往来自祖先骨骼。
+			// 这是"绝对量"，所以弹簧偏移永远不会无限累积。
+			FVector DriverTarget = PrevDriverTarget;
+			const int32 DriverFrame = MapToDriverFrame(Frame);
+			if (DriverFrame != INDEX_NONE)
+			{
+				// 相位延迟：按骨骼序号错开，让同组骨骼不同步，形成波浪式跟随。
+				// （ChainDepth 在同级骨骼上恒为0，改用序号保证差异）
+				const int32 PhaseFrames = (SimBone.BoneIndex % 4) * 2;
+				const int32 PhasedFrame = FMath::Clamp(
+					DriverFrame - PhaseFrames,
+					0, DriverKeyCount - 1);
+
+				const FQuat DriverNow = GetDriverCumulativeAt(PhasedFrame);
+				const FQuat DriverCumulative = DriverStartCumulative.Inverse() * DriverNow;
+
+				// 用欧拉角差分：避免GetRotationAxis在角度跨越π时轴翻转导致正负抵消
+				// FRotator::Euler() 返回度，转成弧度与SwingOffset单位统一
+				DriverTarget = FMath::DegreesToRadians(FRotator(DriverCumulative).Euler());
+			}
+
+			// 摆动应当只是躯干运动的"滞后分量"，而非完整复制。
+			// 骨骼层级本身已经让胸部跟随躯干，若再叠加完整的驱动偏差会形成双倍旋转
+			// （视觉上表现为抽搐/翻面）。因此按增益缩放，并随链深衰减。
+			const float DepthScale = 0.55f / (1.0f + SimBone.ChainDepth * 0.5f);
+			const FVector SpringTarget = DriverTarget * DepthScale;
+
+			// 欠阻尼弹簧积分：SwingVelocity 追向目标，SwingOffset 累加速度
+			SwingVelocity += (SpringTarget - SimBone.AngularVelocity) * FollowStiffness;
+			SwingVelocity *= FollowDamping;
+			SimBone.AngularVelocity += SwingVelocity;
+
+			// 限幅（弧度）：单帧最大摆动角度
+			const float MaxSwingRad = FMath::DegreesToRadians(MaxSwingDegrees);
+			SimBone.AngularVelocity.X = FMath::Clamp(SimBone.AngularVelocity.X, -MaxSwingRad, MaxSwingRad);
+			SimBone.AngularVelocity.Y = FMath::Clamp(SimBone.AngularVelocity.Y, -MaxSwingRad, MaxSwingRad);
+			SimBone.AngularVelocity.Z = FMath::Clamp(SimBone.AngularVelocity.Z, -MaxSwingRad, MaxSwingRad);
+
+			FVector SwingOffset = SimBone.AngularVelocity;
+
+			// 关节角度限制（软约束）：硬裁剪会让胸/发固定在同一饱和角度，
+			// 这里改为超出限制时按比例衰减，保留随动作变化的部分。
+			if (SimBone.LimitPitch > 0.1f)
+			{
+				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitPitch);
+				if (FMath::Abs(SwingOffset.X) > LimitRad)
+				{
+					SwingOffset.X = FMath::Sign(SwingOffset.X) *
+						(LimitRad + (FMath::Abs(SwingOffset.X) - LimitRad) * 0.15f);
+				}
+			}
+			if (SimBone.LimitYaw > 0.1f)
+			{
+				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitYaw);
+				if (FMath::Abs(SwingOffset.Y) > LimitRad)
+				{
+					SwingOffset.Y = FMath::Sign(SwingOffset.Y) *
+						(LimitRad + (FMath::Abs(SwingOffset.Y) - LimitRad) * 0.15f);
+				}
+			}
+			if (SimBone.LimitRoll > 0.1f)
+			{
+				const float LimitRad = FMath::DegreesToRadians(SimBone.LimitRoll);
+				if (FMath::Abs(SwingOffset.Z) > LimitRad)
+				{
+					SwingOffset.Z = FMath::Sign(SwingOffset.Z) *
+						(LimitRad + (FMath::Abs(SwingOffset.Z) - LimitRad) * 0.15f);
+				}
+			}
+			PrevDriverTarget = DriverTarget;
+
+			// 结果 = 动画姿势 + 受限后的摆动偏移
+			// 注意：FQuat::MakeFromEuler / FRotator::MakeFromEuler 的参数是"度"，
+			// SwingOffset 内部按弧度计算，这里必须转成度，否则摆幅会被缩小57倍。
+			const FVector SwingOffsetDegrees = FMath::RadiansToDegrees(SwingOffset);
+			const FQuat SimRotation = AnimRotation * FQuat::MakeFromEuler(SwingOffsetDegrees);
+
+			SimBone.PrevRotation = SimRotation;
+			Track.RotKeys[Frame] = FQuat4f(SimRotation.GetNormalized());
+			++BakedKeyCount;
+
+			// 驱动目标恒为0说明驱动骨骼选错或整段无运动
+			if (Frame % 120 == 1)
+			{
+				UE_LOG(LogMMD4UE4_VMDFactory, Log,
+					TEXT("[bake] f%d driver=%s target=%.2fdeg swing=%.2fdeg"),
+					Frame,
+					RefSkeleton.IsValidIndex(SimBone.DriverBoneIndex)
+						? *RefSkeleton.GetBoneName(SimBone.DriverBoneIndex).ToString()
+						: TEXT("None"),
+					FMath::RadiansToDegrees(DriverTarget.Size()),
+					FMath::RadiansToDegrees(SwingOffset.Size()));
+			}
+		}
+	}
+
+	UE_LOG(LogMMD4UE4_VMDFactory, Log,
+		TEXT("Rigid body baked into animation: bones=%d, frames=%d, keys=%d"),
+		SimBones.Num(),
+		SimFrameCount,
+		BakedKeyCount);
+
+	// 摆动幅度汇总（用于确认烘焙是否产生了可见位移）
+	float MaxOverallSwing = 0.0f;
+	for (const FSimBone& SimBone : SimBones)
+	{
+		if (!Tracks.IsValidIndex(SimBone.BoneIndex))
+		{
+			continue;
+		}
+		const FRawAnimSequenceTrack& Track = Tracks[SimBone.BoneIndex];
+		if (Track.RotKeys.Num() <= 1)
+		{
+			continue;
+		}
+		const FQuat FirstRotation = FQuat(Track.RotKeys[0]);
+		float MaxBoneSwing = 0.0f;
+		for (int32 Frame = 1; Frame < Track.RotKeys.Num(); ++Frame)
+		{
+			const FQuat Delta = FirstRotation.Inverse() * FQuat(Track.RotKeys[Frame]);
+			MaxBoneSwing = FMath::Max(MaxBoneSwing, FMath::RadiansToDegrees(Delta.GetAngle()));
+		}
+		MaxOverallSwing = FMath::Max(MaxOverallSwing, MaxBoneSwing);
+	}
+	UE_LOG(LogMMD4UE4_VMDFactory, Log,
+		TEXT("Rigid body swing amplitude: max %.2f deg over %d bones."),
+		MaxOverallSwing,
+		SimBones.Num());
+
+	return BakedKeyCount > 0;
+}
+
 #undef LOCTEXT_NAMESPACE

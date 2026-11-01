@@ -42,8 +42,10 @@ class UVmdImportUI : public UObject
 		TObjectPtr<class USkeletalMesh> SkeletonMesh = nullptr;
 
 	/* IKRig用于骨骼重定向；设置后会启用IK求解 */
-	UPROPERTY(EditAnywhere, Category = IK, meta = (ToolTip = "Optional IK Rig asset used together with the MMD Extend Asset IK chains."))
-	TObjectPtr<class UIKRigDefinition> IKRig = nullptr;
+	// 不在导入菜单显示（与 MMD2UE4NameTableRow 等保持一致），如需显示取消下面的注释
+	//UPROPERTY(EditAnywhere, Category = IK, meta = (ToolTip = "Optional IK Rig asset used together with the MMD Extend Asset IK chains."))
+	UPROPERTY()
+		TObjectPtr<class UIKRigDefinition> IKRig = nullptr;
 
 	/* 用MMDExtendAsset的IK信息对VMD动作做IK/碰撞求解（需要同时指定MMD Extend Asset） */
 	UPROPERTY(EditAnywhere, Category = IK, meta = (ToolTip = "Solve IK and collision (angle limit) from the MMD Extend Asset while importing the VMD motion."))
@@ -52,10 +54,6 @@ class UVmdImportUI : public UObject
 	/* 求解IK时是否应用链路骨骼的角度限制（碰撞） */
 	UPROPERTY(EditAnywhere, Category = IK, meta = (ToolTip = "Apply MMD angle limits (collision) to IK link bones during solving."))
 		bool bApplyIKCollision = true;
-
-	/* 为SkeletalMesh生成MMD刚体物理资产（刚体+关节），用于物理演算 */
-	UPROPERTY(EditAnywhere, Category = Physics, meta = (ToolTip = "Create/update the MMD rigid body PhysicsAsset (bodies + joints) on the skeletal mesh."))
-		bool bCreateRigidBodyPhysics = true;
 
 	/* True to import animations from the FBX File */
 	//UPROPERTY(EditAnywhere, config, Category = Animation, meta = (ImportType = "SkeletalMesh|Animation"))

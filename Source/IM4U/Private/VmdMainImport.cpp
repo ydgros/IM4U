@@ -9,6 +9,7 @@ Main implementation of FFbxImporter : import FBX data to Unreal
 #include "VmdOptionWindow.h"
 #include "EngineAnalytics.h"
 #include "MainFrame.h"
+#include "Rig/IKRigDefinition.h"
 
 //DEFINE_LOG_CATEGORY(LogPmx);
 #define LOCTEXT_NAMESPACE "VmdMainImport"
@@ -33,6 +34,36 @@ VMDImportOptions* GetVMDImportOptions(
 	}
 
 	bOutOperationCanceled = false;
+
+	// 清空已失效的资产引用：这些是裸UObject指针，资产被删除后会悬空，
+	// 再次导入时访问会导致 0xC0000005。仍有效的引用保留（沿用上次选择）。
+	if (VMDImportOptions* CachedOptions = VmdImporter->GetMutableImportOptions())
+	{
+		if (CachedOptions->SkeletonForAnimation && !IsValid(CachedOptions->SkeletonForAnimation))
+		{
+			CachedOptions->SkeletonForAnimation = nullptr;
+		}
+		if (CachedOptions->SkeletalMeshForAnimation && !IsValid(CachedOptions->SkeletalMeshForAnimation))
+		{
+			CachedOptions->SkeletalMeshForAnimation = nullptr;
+		}
+		if (CachedOptions->AnimSequenceAsset && !IsValid(CachedOptions->AnimSequenceAsset))
+		{
+			CachedOptions->AnimSequenceAsset = nullptr;
+		}
+		if (CachedOptions->MMD2UE4NameTableRow && !IsValid(CachedOptions->MMD2UE4NameTableRow))
+		{
+			CachedOptions->MMD2UE4NameTableRow = nullptr;
+		}
+		if (CachedOptions->MmdExtendAsset && !IsValid(CachedOptions->MmdExtendAsset))
+		{
+			CachedOptions->MmdExtendAsset = nullptr;
+		}
+		if (CachedOptions->IKRig && !IsValid(CachedOptions->IKRig))
+		{
+			CachedOptions->IKRig = nullptr;
+		}
+	}
 
 	if (bShowOptionDialog)
 	{
@@ -103,7 +134,6 @@ VMDImportOptions* GetVMDImportOptions(
 		// IK/碰撞求解：沿用上次的勾选状态
 		ImportUI->bSolveIK = ImportOptions->bSolveIK;
 		ImportUI->bApplyIKCollision = ImportOptions->bApplyIKCollision;
-		ImportUI->bCreateRigidBodyPhysics = ImportOptions->bCreateRigidBodyPhysics;
 
 		//ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == VMDIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
@@ -203,7 +233,6 @@ void ApplyVMDImportUIToImportOptions(
 	InOutImportOptions.IKRig = ImportUI->IKRig;
 	InOutImportOptions.bSolveIK = ImportUI->bSolveIK;
 	InOutImportOptions.bApplyIKCollision = ImportUI->bApplyIKCollision;
-	InOutImportOptions.bCreateRigidBodyPhysics = ImportUI->bCreateRigidBodyPhysics;
 }
 
 TSharedPtr<FVmdImporter> FVmdImporter::StaticInstance;
@@ -217,7 +246,6 @@ FVmdImporter::FVmdImporter()
 	// FMemory::Memzero 会把 bool 全部置 0，这里恢复默认开启的IK选项
 	ImportOptions->bSolveIK = true;
 	ImportOptions->bApplyIKCollision = true;
-	ImportOptions->bCreateRigidBodyPhysics = true;
 }
 
 //-------------------------------------------------------------------------
@@ -233,7 +261,9 @@ FVmdImporter::~FVmdImporter()
 //-------------------------------------------------------------------------
 FVmdImporter* FVmdImporter::GetInstance()
 {
-	if (!StaticInstance.IsValid())
+	// CleanUp() 会释放 ImportOptions，此时必须重建单例，
+	// 否则后续导入拿到的是空壳对象，解引用空指针导致崩溃。
+	if (!StaticInstance.IsValid() || !StaticInstance->ImportOptions.IsValid())
 	{
 		StaticInstance = MakeShareable(new FVmdImporter());
 	}

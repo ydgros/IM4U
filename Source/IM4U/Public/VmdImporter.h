@@ -288,8 +288,6 @@ struct VMDImportOptions
 	// IK/碰撞求解
 	bool bSolveIK;
 	bool bApplyIKCollision;
-	// 刚体物理演算（为SkeletalMesh生成MMD刚体PhysicsAsset）
-	bool bCreateRigidBodyPhysics;
 };
 
 VMDImportOptions* GetVMDImportOptions(

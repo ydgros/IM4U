@@ -107,6 +107,98 @@ struct FMMD_IKInfo
 	}
 };
 
+//MMD Rigid Body Info (PMX原值，供VMD导入时物理烘焙使用)
+USTRUCT(BlueprintType)
+struct FMMD_RigidBodyInfo
+{
+	GENERATED_BODY()
+
+	//刚体名
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FString Name;
+
+	//绑定的骨骼名（UE侧）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FName BoneName;
+
+	//0:球 1:箱 2:胶囊
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	uint8 ShapeType = 0;
+
+	//尺寸
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector Size = FVector::ZeroVector;
+
+	//相对骨骼的位置/旋转
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector Position = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FQuat Rotation = FQuat::Identity;
+
+	//质量
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	float Mass = 0.0f;
+
+	//移动衰减(0~1，1=几乎不减速)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	float PosDim = 1.0f;
+
+	//旋转衰减(0~1，1=几乎不减速)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	float RotDim = 1.0f;
+
+	//回弹力
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	float Recoil = 0.0f;
+
+	//摩擦力
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	float Friction = 0.0f;
+
+	//0:Bone跟随 1:物理演算 2:物理演算+Bone位置合わせ
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	uint8 OpType = 0;
+};
+
+//MMD Joint Info (PMX原值)
+USTRUCT(BlueprintType)
+struct FMMD_JointInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FString Name;
+
+	//连接的两个刚体在RigidBodyList中的索引
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	int32 RigidBodyAIndex = INDEX_NONE;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	int32 RigidBodyBIndex = INDEX_NONE;
+
+	//旋转限制(弧度)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector ConstrainRotationMin = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector ConstrainRotationMax = FVector::ZeroVector;
+
+	//移动限制
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector ConstrainPositionMin = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector ConstrainPositionMax = FVector::ZeroVector;
+
+	//弹簧系数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector SpringRotation = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD")
+	FVector SpringPosition = FVector::ZeroVector;
+};
+
 //MMD Extend Asset Class
 UCLASS()
 class UMMDExtendAsset : public UObject
@@ -125,6 +217,14 @@ public:
 	//MMD-IK-Info is used to generate the AnimSequence from VMD file.
 	UPROPERTY(EditAnywhere, Category = IK)
 	TArray<FMMD_IKInfo> IkInfoList;
+
+	//MMD原始刚体数据（VMD导入时用于物理烘焙，保留OpType/減衰等原值）
+	UPROPERTY(EditAnywhere, Category = Physics)
+	TArray<FMMD_RigidBodyInfo> RigidBodyList;
+
+	//MMD原始关节数据（旋转限制、弹簧，用于烘焙时的角度约束）
+	UPROPERTY(EditAnywhere, Category = Physics)
+	TArray<FMMD_JointInfo> JointList;
 
 	UMMDExtendAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
