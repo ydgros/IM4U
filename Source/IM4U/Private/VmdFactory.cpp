@@ -17,6 +17,8 @@
 #include "Misc/PackageName.h"
 #include "ObjectTools.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/SkeletalBodySetup.h"
 #include "RigEditor/IKRigController.h"
 
 #define LOCTEXT_NAMESPACE "VMDImportFactory"
@@ -455,10 +457,12 @@ if (false)
 						SkeletalMesh,
 						InParent,
 						Name.ToString(),
-						IKRig,
+						ImportUI->bSolveIK ? IKRig : nullptr,
 						ImportUI->MMD2UE4NameTableRow,
-						ImportUI->MmdExtendAsset,
-						&vmdMotionInfo
+						ImportUI->bSolveIK ? ImportUI->MmdExtendAsset : nullptr,
+						&vmdMotionInfo,
+						ImportUI->bApplyIKCollision,
+						ImportUI->bCreateRigidBodyPhysics
 					);
 				}
 				else
@@ -511,7 +515,9 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	UIKRigDefinition* IKRig,
 	UDataTable* ReNameTable,
 	UMMDExtendAsset* mmdExtend,
-	MMD4UE4::VmdMotionInfo* vmdMotionInfo
+	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+	bool bApplyIKCollision,
+	bool bCreateRigidBodyPhysics
 )
 {
 	UAnimSequence* LastCreatedAnim = nullptr;
@@ -610,7 +616,7 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	{
 		bool importSuccessFlag = true;
 		/*vmd animation regist*/
-		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo))
+		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo, bApplyIKCollision, bCreateRigidBodyPhysics))
 		{
 			//TBD::ERR case
 			check(false);
@@ -679,6 +685,12 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 			// mark package as dirty
 			//MarkPackageDirty();  //表达式未使用
 			//SkeletalMesh->MarkPackageDirty();
+			/* 刚体物理演算：模型已带MMD刚体PhysicsAsset时，标记mesh以便重建PhysicsState */
+			if (bCreateRigidBodyPhysics && IsValid(SkeletalMesh) && IsValid(SkeletalMesh->GetPhysicsAsset()))
+			{
+				SkeletalMesh->MarkPackageDirty();
+			}
+
 			LastCreatedAnim->PostEditChange();
 			LastCreatedAnim->SetPreviewMesh(SkeletalMesh);
 			LastCreatedAnim->MarkPackageDirty();
@@ -979,13 +991,14 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 	UDataTable* ReNameTable,
 	UIKRigDefinition* IKRig,
 	UMMDExtendAsset* mmdExtend,
-	MMD4UE4::VmdMotionInfo* vmdMotionInfo
+	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+		bool bApplyIKCollision,
+		bool bCreateRigidBodyPhysics
 )
 {
-	// nullptr check in-param
-	if (!DestSeq || !Skeleton || !vmdMotionInfo)
-	{
-		UE_LOG(LogMMD4UE4_VMDFactory, Error,
+		if (!DestSeq || !Skeleton || !vmdMotionInfo)
+		{
+			UE_LOG(LogMMD4UE4_VMDFactory, Error,
 			//%p输出指针地址 %x输出无符号十六进制
 		       TEXT("ImportVMDToAnimSequence : Ref InParam is nullptr. DestSeq[%p],Skelton[%p],vmdMotionInfo[%p]"),
 		      DestSeq, Skeleton, vmdMotionInfo);
@@ -1018,9 +1031,11 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 
 	const FFrameNumber NumberOfFrames = FGenericPlatformMath::Max<int32>((int32)vmdMotionInfo->maxFrame, 1);
 	adc.SetNumberOfFrames(NumberOfFrames.Value,false);
+	const int32 NumSampleFrames = NumberOfFrames.Value;
 #else
 	adc.NotifyPopulated();
 	adc.SetPlayLength(FGenericPlatformMath::Max<float>(1.0f / 30.0f * (float)vmdMotionInfo->maxFrame, MINIMUM_ANIMATION_LENGTH));
+	const int32 NumSampleFrames = FMath::Max<int32>((int32)vmdMotionInfo->maxFrame, 1);
 #endif
 	const int32 NumBones = Skeleton->GetReferenceSkeleton().GetNum();
 
@@ -1452,6 +1467,41 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 		}
 	}
 	adc.OpenBracket(LOCTEXT("AddNewRawTrack_Bracket", "Adding new Bone Animation Track"));
+	/* IK/碰撞求解：有ExtendAsset的IK链时修正逐帧局部姿态（IK开关帧可逐帧开关IK） */
+	ApplyIkSolveToBoneTracks(
+		Skeleton,
+		TempRawTrackList,
+		TempRawTrackList,
+		IKRig,
+		mmdExtend,
+		vmdMotionInfo,
+		NumSampleFrames,
+		RefBonePose,
+		bApplyIKCollision);
+
+	/* 刚体物理解算：MMD刚体(Dynamic)骨骼做弹簧-阻尼演算，结果写回轨道 */
+	if (bCreateRigidBodyPhysics && IsValid(SkeletalMesh))
+	{
+		const bool bBaked = BakeRigidBodySimulationToTracks(
+			SkeletalMesh,
+			Skeleton->GetReferenceSkeleton(),
+			TempRawTrackList,
+			NumSampleFrames,
+			ResampleRate);
+		UE_LOG(LogMMD4UE4_VMDFactory, Log,
+			TEXT("VMD rigid body simulation: enabled=%s, baked=%s, physicsAsset=%s"),
+			bCreateRigidBodyPhysics ? TEXT("yes") : TEXT("no"),
+			bBaked ? TEXT("yes") : TEXT("no"),
+			IsValid(SkeletalMesh->GetPhysicsAsset()) ? TEXT("valid") : TEXT("null"));
+	}
+	else
+	{
+		UE_LOG(LogMMD4UE4_VMDFactory, Log,
+			TEXT("VMD rigid body simulation skipped: flag=%s, mesh=%s"),
+			bCreateRigidBodyPhysics ? TEXT("on") : TEXT("off"),
+			IsValid(SkeletalMesh) ? TEXT("valid") : TEXT("null"));
+	}
+
 	/* AddTrack */
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 	{
@@ -1719,6 +1769,360 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 	//GWarn->EndSlowTask();
 	return true;
 }
+
+/*
+IK/碰撞求解（CCD-IK）
+使用MMDExtendAsset的IK链信息与VMD的IK开关关键帧，逐帧修正局部姿态。
+碰撞体现为：链路骨骼受MMD角度限制（RotLockFlag / RotLockMin / RotLockMax）约束。
+*/
+void UVmdFactory::SolveIkForFrame(
+	const FReferenceSkeleton& RefSkeleton,
+	TArray<FMMD_IKInfo> IkInfoList,
+	TArray<FTransform>& LocalTransforms,
+	const TArray<FTransform>& RefPose,
+	int32 Frame,
+	bool bApplyIKCollision
+)
+{
+	const int32 NumBones = RefSkeleton.GetNum();
+	if (NumBones <= 0)
+	{
+		return;
+	}
+	LocalTransforms.SetNum(FMath::Max(NumBones, LocalTransforms.Num()));
+
+	auto CalcGlobal = [&RefSkeleton, &LocalTransforms](int32 BoneIndex)
+	{
+		TArray<int32, TInlineAllocator<32>> Chain;
+		int32 current = BoneIndex;
+		while (current != INDEX_NONE && RefSkeleton.IsValidIndex(current))
+		{
+			Chain.Add(current);
+			current = RefSkeleton.GetParentIndex(current);
+		}
+		FTransform result = FTransform::Identity;
+		for (int32 chainIndex = Chain.Num() - 1; chainIndex >= 0; --chainIndex)
+		{
+			result = LocalTransforms[Chain[chainIndex]] * result;
+		}
+		return result;
+	};
+
+		(void)Frame;
+
+		// 逐次迭代整体计算链路，链深较小，开销可控
+		for (int32 ikIndex = 0; ikIndex < IkInfoList.Num(); ++ikIndex)
+	{
+		const FMMD_IKInfo& ikInfo = IkInfoList[ikIndex];
+		if (!RefSkeleton.IsValidIndex(ikInfo.IKBoneIndex) ||
+			!RefSkeleton.IsValidIndex(ikInfo.TargetBoneIndex))
+		{
+			continue;
+		}
+
+		const int32 ikBoneIndex = ikInfo.IKBoneIndex;
+		const int32 targetBoneIndex = ikInfo.TargetBoneIndex;
+		// 碰撞开启时提高迭代次数，让角度限制收敛
+		const int32 defaultLoop = (bApplyIKCollision && ikInfo.bEnableCollision) ? 32 : 8;
+		const int32 loopCount = FMath::Clamp(ikInfo.LoopNum > 0 ? ikInfo.LoopNum : defaultLoop, 1, 255);		const float rotLimit = ikInfo.RotLimit;
+
+		for (int32 loop = 0; loop < loopCount; ++loop)
+		{
+			const FTransform ikGlobal = CalcGlobal(ikBoneIndex);
+			const FTransform targetGlobal = CalcGlobal(targetBoneIndex);
+			if (targetGlobal.GetLocation().Equals(ikGlobal.GetLocation(), 0.01f))
+			{
+				break;
+			}
+
+			// 从离IK目标最远的链接骨骼开始求解
+			int32 maxDistanceLink = INDEX_NONE;
+			float maxDistanceSq = -1.0f;
+			for (int32 linkIndex = 0; linkIndex < ikInfo.ikLinkList.Num(); ++linkIndex)
+			{
+				const int32 linkBoneIndex = ikInfo.ikLinkList[linkIndex].BoneIndex;
+				if (!RefSkeleton.IsValidIndex(linkBoneIndex))
+				{
+					continue;
+				}
+				if (!RefSkeleton.BoneIsChildOf(linkBoneIndex, ikBoneIndex))
+				{
+					continue;
+				}
+				if (RefSkeleton.BoneIsChildOf(linkBoneIndex, targetBoneIndex))
+				{
+					continue;
+				}
+				const FTransform linkGlobal = CalcGlobal(linkBoneIndex);
+				const float distanceSq =
+					(ikGlobal.GetLocation() - linkGlobal.GetLocation()).SizeSquared();
+				if (distanceSq > maxDistanceSq)
+				{
+					maxDistanceSq = distanceSq;
+					maxDistanceLink = linkIndex;
+				}
+			}
+			if (maxDistanceLink == INDEX_NONE)
+			{
+				break;
+			}
+
+			const FMMD_IKLINK& ikLink = ikInfo.ikLinkList[maxDistanceLink];
+			const int32 linkBoneIndex = ikLink.BoneIndex;
+			const int32 linkParentIndex = RefSkeleton.GetParentIndex(linkBoneIndex);
+			if (!RefSkeleton.IsValidIndex(linkBoneIndex))
+			{
+				break;
+			}
+
+			const FTransform linkGlobal = CalcGlobal(linkBoneIndex);
+			const FTransform ikGlobalNow = CalcGlobal(ikBoneIndex);
+			const FTransform targetGlobalNow = CalcGlobal(targetBoneIndex);
+			const FTransform parentGlobal = linkParentIndex != INDEX_NONE
+				? CalcGlobal(linkParentIndex)
+				: FTransform::Identity;
+
+			FVector linkToIk = ikGlobalNow.GetLocation() - linkGlobal.GetLocation();
+			FVector linkToTarget = targetGlobalNow.GetLocation() - linkGlobal.GetLocation();
+			if (linkToIk.IsNearlyZero() || linkToTarget.IsNearlyZero())
+			{
+				break;
+			}
+			linkToIk.Normalize();
+			linkToTarget.Normalize();
+
+			// 限制单次迭代的旋转量
+			FQuat addWorldRot = FQuat::FindBetweenNormals(linkToIk, linkToTarget);
+			if (rotLimit > 0.0f && addWorldRot.GetAngle() > rotLimit)
+			{
+				addWorldRot = FQuat(addWorldRot.GetRotationAxis(), rotLimit);
+			}
+			if (addWorldRot.GetAngle() < KINDA_SMALL_NUMBER)
+			{
+				break;
+			}
+
+			// 新的世界旋转换算回局部旋转：Local = ParentWorld^-1 * NewWorld
+			const FQuat newWorldRot = addWorldRot * linkGlobal.GetRotation();
+			FQuat newLocalRot = parentGlobal.GetRotation().Inverse() * newWorldRot;
+
+			if (bApplyIKCollision && ikLink.RotLockFlag)
+			{
+				// 碰撞：把链接骨骼的旋转夹取到MMD角度限制范围内
+				const FRotator localRotator(newLocalRot);
+				const FRotator clampedRotator(
+					FMath::Clamp(localRotator.Pitch, ikLink.RotLockMin.X, ikLink.RotLockMax.X),
+					FMath::Clamp(localRotator.Yaw, ikLink.RotLockMin.Y, ikLink.RotLockMax.Y),
+					FMath::Clamp(localRotator.Roll, ikLink.RotLockMin.Z, ikLink.RotLockMax.Z));
+				newLocalRot = clampedRotator.Quaternion();
+			}
+
+			LocalTransforms[linkBoneIndex].SetRotation(newLocalRot.GetNormalized());
+		}
+	}
+}
+
+void UVmdFactory::ApplyIkSolveToBoneTracks(
+	USkeleton* Skeleton,
+	const TArray<FRawAnimSequenceTrack>& InRefTracks,
+	TArray<FRawAnimSequenceTrack>& OutTracks,
+	UIKRigDefinition* IKRig,
+	UMMDExtendAsset* mmdExtend,
+	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+	int32 NumFrames,
+	const TArray<FTransform>& RefPose,
+	bool bApplyIKCollision
+)
+{
+	if (!Skeleton || !vmdMotionInfo || NumFrames <= 0)
+	{
+		return;
+	}
+
+	(void)InRefTracks;
+
+	const bool bHasIkInfo = IsValid(mmdExtend) && mmdExtend->IkInfoList.Num() > 0;
+	const bool bHasIkSwitchKeys = vmdMotionInfo->keyIkList.Num() > 0;
+	if (!bHasIkInfo)
+	{
+		// 没有ExtendAsset的IK链时无法逐帧求解，保留VMD原始姿态
+		if (IKRig || bHasIkSwitchKeys)
+		{
+			UE_LOG(LogMMD4UE4_VMDFactory, Warning,
+				TEXT("VMD IK solve skipped: MMDExtendAsset has no IK info (raw VMD pose kept)."));
+		}
+		return;
+	}
+
+	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const int32 NumBones = RefSkeleton.GetNum();
+	const int32 NumKeys = OutTracks.Num();
+	const int32 SolveFrameCount = FMath::Min<int32>(NumFrames, NumKeys);
+	if (NumBones <= 0 || SolveFrameCount <= 0)
+	{
+		return;
+	}
+
+	// 仅保留能在骨架中定位到的IK链
+	TArray<FMMD_IKInfo> IkInfoList;
+	IkInfoList.Reserve(mmdExtend->IkInfoList.Num());
+	for (int32 ikIndex = 0; ikIndex < mmdExtend->IkInfoList.Num(); ++ikIndex)
+	{
+		FMMD_IKInfo ikInfo = mmdExtend->IkInfoList[ikIndex];
+		if (ikInfo.IKBoneIndex == INDEX_NONE)
+		{
+			ikInfo.IKBoneIndex = RefSkeleton.FindBoneIndex(ikInfo.IKBoneName);
+		}
+		if (ikInfo.TargetBoneIndex == INDEX_NONE)
+		{
+			ikInfo.TargetBoneIndex = RefSkeleton.FindBoneIndex(ikInfo.TargetBoneName);
+		}
+		for (int32 linkIndex = 0; linkIndex < ikInfo.ikLinkList.Num(); ++linkIndex)
+		{
+			FMMD_IKLINK& ikLink = ikInfo.ikLinkList[linkIndex];
+			if (ikLink.BoneIndex == INDEX_NONE)
+			{
+				ikLink.BoneIndex = RefSkeleton.FindBoneIndex(ikLink.BoneName);
+			}
+		}
+		if (RefSkeleton.IsValidIndex(ikInfo.IKBoneIndex) &&
+			RefSkeleton.IsValidIndex(ikInfo.TargetBoneIndex))
+		{
+			ikInfo.checkIKIndex = true;
+			IkInfoList.Add(ikInfo);
+		}
+	}
+	if (IkInfoList.Num() == 0)
+	{
+		UE_LOG(LogMMD4UE4_VMDFactory, Warning,
+			TEXT("VMD IK solve skipped: no IK chain matched the skeleton (raw VMD pose kept)."));
+		return;
+	}
+
+	// VMD名称按15字节截断，去重后用于匹配IK开关帧
+	auto FindVmdIkBoneName = [vmdMotionInfo](const FName& IKBoneName) -> FName
+	{
+		if (IKBoneName.IsNone())
+		{
+			return IKBoneName;
+		}
+		const FString ikBoneString = IKBoneName.ToString();
+		for (int32 trackIndex = 0; trackIndex < vmdMotionInfo->keyIkList.Num(); ++trackIndex)
+		{
+			if (vmdMotionInfo->keyIkList[trackIndex].TrackName == ikBoneString)
+			{
+				return IKBoneName;
+			}
+		}
+		// 15byte截断匹配（例如"右足ＩＫ"被截断）
+		const FString truncated = ikBoneString.Left(15);
+		for (int32 trackIndex = 0; trackIndex < vmdMotionInfo->keyIkList.Num(); ++trackIndex)
+		{
+			if (vmdMotionInfo->keyIkList[trackIndex].TrackName == truncated)
+			{
+				return FName(*truncated);
+			}
+		}
+		return IKBoneName;
+	};
+
+	const bool bUseSwitchKeys = vmdMotionInfo->keyIkList.Num() > 0;
+	const bool bDefaultIkEnabled =
+		!vmdMotionInfo->bHasVisibleIKExtension || vmdMotionInfo->bAllIkEnabled;
+
+	TArray<FTransform> LocalTransforms;
+	LocalTransforms.SetNum(NumBones);
+
+	int32 SolvedFrameCount = 0;
+	for (int32 Frame = 0; Frame < SolveFrameCount; ++Frame)
+	{
+		TArray<FMMD_IKInfo> ActiveIkList;
+		for (int32 ikIndex = 0; ikIndex < IkInfoList.Num(); ++ikIndex)
+		{
+			const FMMD_IKInfo& ikInfo = IkInfoList[ikIndex];
+			bool bIkEnabled = bDefaultIkEnabled;
+			if (bUseSwitchKeys)
+			{
+				bIkEnabled = vmdMotionInfo->GetIkEnabledAtFrame(
+					FindVmdIkBoneName(ikInfo.IKBoneName),
+					static_cast<uint32>(Frame),
+					bDefaultIkEnabled);
+			}
+			if (bIkEnabled)
+			{
+				ActiveIkList.Add(ikInfo);
+			}
+		}
+		if (ActiveIkList.Num() == 0)
+		{
+			continue;
+		}
+
+		for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+		{
+			const FRawAnimSequenceTrack& Track = OutTracks[BoneIndex];
+			const bool bHasPos = Track.PosKeys.IsValidIndex(Frame);
+			const bool bHasRot = Track.RotKeys.IsValidIndex(Frame);
+			const bool bHasScale = Track.ScaleKeys.IsValidIndex(Frame);
+			if (!bHasPos && !bHasRot && !bHasScale)
+			{
+				LocalTransforms[BoneIndex] = RefPose.IsValidIndex(BoneIndex)
+					? RefPose[BoneIndex]
+					: FTransform::Identity;
+				continue;
+			}
+			const FVector RefTranslation = RefPose.IsValidIndex(BoneIndex)
+				? RefPose[BoneIndex].GetTranslation()
+				: FVector::ZeroVector;
+			LocalTransforms[BoneIndex] = FTransform(
+				bHasRot ? FQuat(Track.RotKeys[Frame]) : FQuat::Identity,
+				bHasPos ? FVector(Track.PosKeys[Frame]) - RefTranslation : FVector::ZeroVector,
+				bHasScale ? FVector(Track.ScaleKeys[Frame]) : FVector::OneVector);
+		}
+
+		SolveIkForFrame(RefSkeleton, ActiveIkList, LocalTransforms, RefPose, Frame, bApplyIKCollision);
+
+		for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+		{
+			FRawAnimSequenceTrack& Track = OutTracks[BoneIndex];
+			const bool bHasPos = Track.PosKeys.IsValidIndex(Frame);
+			const bool bHasRot = Track.RotKeys.IsValidIndex(Frame);
+			if (!bHasPos && !bHasRot)
+			{
+				continue;
+			}
+			if (bHasRot)
+			{
+				Track.RotKeys[Frame] = FQuat4f(LocalTransforms[BoneIndex].GetRotation());
+			}
+			if (bHasPos)
+			{
+				const FVector RefTranslation = RefPose.IsValidIndex(BoneIndex)
+					? RefPose[BoneIndex].GetTranslation()
+					: FVector::ZeroVector;
+				Track.PosKeys[Frame] =
+					FVector3f(LocalTransforms[BoneIndex].GetTranslation() + RefTranslation);
+			}
+		}
+		++SolvedFrameCount;
+	}
+
+	bool bAnyCollision = false;
+	for (int32 ikIndex = 0; ikIndex < IkInfoList.Num(); ++ikIndex)
+	{
+		bAnyCollision |= IkInfoList[ikIndex].bEnableCollision;
+	}
+	UE_LOG(LogMMD4UE4_VMDFactory, Log,
+		TEXT("VMD IK solve: ikChains=%d, frames=%d/%d, ikSwitchKeys=%s, collision=%s, ikRig=%s"),
+		IkInfoList.Num(),
+		SolvedFrameCount,
+		SolveFrameCount,
+		bUseSwitchKeys ? TEXT("on") : TEXT("off"),
+		bAnyCollision ? TEXT("on") : TEXT("off"),
+		IKRig ? TEXT("set") : TEXT("none"));
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////
 // 创建以X轴为中心的旋转矩阵

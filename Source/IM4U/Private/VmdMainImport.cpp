@@ -100,6 +100,11 @@ VMDImportOptions* GetVMDImportOptions(
 			ImportUI->AnimSequenceAsset = nullptr;
 		}
 
+		// IK/碰撞求解：沿用上次的勾选状态
+		ImportUI->bSolveIK = ImportOptions->bSolveIK;
+		ImportUI->bApplyIKCollision = ImportOptions->bApplyIKCollision;
+		ImportUI->bCreateRigidBodyPhysics = ImportOptions->bCreateRigidBodyPhysics;
+
 		//ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == VMDIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
 
@@ -196,6 +201,9 @@ void ApplyVMDImportUIToImportOptions(
 	InOutImportOptions.MMD2UE4NameTableRow = ImportUI->MMD2UE4NameTableRow;
 	InOutImportOptions.MmdExtendAsset = ImportUI->MmdExtendAsset;
 	InOutImportOptions.IKRig = ImportUI->IKRig;
+	InOutImportOptions.bSolveIK = ImportUI->bSolveIK;
+	InOutImportOptions.bApplyIKCollision = ImportUI->bApplyIKCollision;
+	InOutImportOptions.bCreateRigidBodyPhysics = ImportUI->bCreateRigidBodyPhysics;
 }
 
 TSharedPtr<FVmdImporter> FVmdImporter::StaticInstance;
@@ -206,6 +214,10 @@ FVmdImporter::FVmdImporter()
 {
 	ImportOptions = MakeUnique<VMDImportOptions>();
 	FMemory::Memzero(*ImportOptions);
+	// FMemory::Memzero 会把 bool 全部置 0，这里恢复默认开启的IK选项
+	ImportOptions->bSolveIK = true;
+	ImportOptions->bApplyIKCollision = true;
+	ImportOptions->bCreateRigidBodyPhysics = true;
 }
 
 //-------------------------------------------------------------------------

@@ -46,7 +46,7 @@ struct FMMD_IKLINK
 	}
 };
 
-//MMD IK Info Structure
+	//MMD IK Info Structure
 //IK信息
 USTRUCT(BlueprintType)
 struct FMMD_IKInfo
@@ -90,6 +90,10 @@ struct FMMD_IKInfo
 	//IK link info list
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD", meta = (ToolTip = "CCD-IK link IK info"))
 	TArray<FMMD_IKLINK> ikLinkList;
+
+	//IK collision(角限制) enable : MMD侧IK目标骨骼带角度限制时为true
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MMD", meta = (ToolTip = "Enable IK collision(angle limit) solving for this IK bone"))
+	bool bEnableCollision = false;
 
 	FMMD_IKInfo()
 	{

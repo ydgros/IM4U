@@ -117,6 +117,22 @@ namespace MMD4UE4
 		int ikCount; // IK数
 		TArray<VMD_IK_DATA> ikData; // ikData[ikCount]; // IK数据列表
 	} VMD_VISIBLE_IK_DATA;
+
+	//IK开关关键帧（解析后的时间轴数据）
+	struct VmdIkVisibilityKey
+	{
+		uint32	Frame = 0;
+		FName	IKBoneName;
+		bool	bEnabled = false;
+	};
+
+	//骨骼IK开关关键帧列表（含IK不可用的显式关键帧）
+	struct VmdIkTrackList
+	{
+		FString						TrackName;
+		TArray<VmdIkVisibilityKey>	keyList;
+		TArray<int32>				sortIndexList;
+	};
 	////////////////////////////////////////////////////
 
 	//VMD Motion Data for Read-
@@ -141,8 +157,10 @@ namespace MMD4UE4
 		//extend info, ik visible
 		int32					vmdExtIKCount;
 		TArray<VMD_VISIBLE_IK_DATA>	vmdExtIKList;
+		//extend info, bone visible
+		int32					vmdExtVisibleCount;
+		TArray<VMD_VISIBLE_IK_DATA>	vmdExtVisibleList;
 	};
-
 	struct VmdKeyTrackList
 	{
 		// Track Name
@@ -211,6 +229,12 @@ namespace MMD4UE4
 			FString targetName,
 			EVMDKEYFRAMETYPE listType);
 
+		// 指定骨骼在指定帧的IK开关状态（未记录时为默认值）
+		bool GetIkEnabledAtFrame(
+			FName IKBoneName,
+			uint32 Frame,
+			bool bDefault) const;
+
 		// vmd Target Model Name
 		FString					ModelName;
 		// min Frame 
@@ -224,6 +248,12 @@ namespace MMD4UE4
 		TArray<VmdFaceTrackList> keyFaceList;
 		//camera
 		TArray<VmdCameraTrackList> keyCameraList;
+		//IK on/off (VMD "显示/IK" 扩展块)
+		TArray<VmdIkTrackList>	keyIkList;
+		//是否包含 VMD 扩展块（显示/IK）
+		bool					bHasVisibleIKExtension = false;
+		//IK开关是否全部固定在on（无关键帧或所有关键帧均为on）
+		bool					bAllIkEnabled = true;
 	};
 
 }
@@ -255,6 +285,11 @@ struct VMDImportOptions
 	UDataTable* MMD2UE4NameTableRow;
 	UMMDExtendAsset* MmdExtendAsset;
 	class UIKRigDefinition* IKRig;
+	// IK/碰撞求解
+	bool bSolveIK;
+	bool bApplyIKCollision;
+	// 刚体物理演算（为SkeletalMesh生成MMD刚体PhysicsAsset）
+	bool bCreateRigidBodyPhysics;
 };
 
 VMDImportOptions* GetVMDImportOptions(

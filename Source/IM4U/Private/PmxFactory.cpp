@@ -1033,7 +1033,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 					{
 						NewPhysicsAsset = nullptr;
 					}
-					if (NewPhysicsAsset)
+					else
 					{
 						int bdn = NewPhysicsAsset->SkeletalBodySetups.Num();
 						for (int i = 0; i < bdn; i++)
@@ -1404,6 +1404,18 @@ UMMDExtendAsset * UPmxFactory::CreateMMDExtendFromMMDModel(
 					addMMDIkInfo.IKBoneIndex != INDEX_NONE &&
 					addMMDIkInfo.TargetBoneIndex != INDEX_NONE &&
 					addMMDIkInfo.ikLinkList.Num() > 0;
+
+				//碰撞（角度限制）：MMD侧IK目标带角度限制时，作为碰撞体求解并限制链路旋转
+				addMMDIkInfo.bEnableCollision = false;
+				for (int ikInfoID = 0; ikInfoID < addMMDIkInfo.ikLinkList.Num(); ++ikInfoID)
+				{
+					if (addMMDIkInfo.ikLinkList[ikInfoID].RotLockFlag)
+					{
+						addMMDIkInfo.bEnableCollision = true;
+						break;
+					}
+				}
+
 				//add
 				NewMMDExtendAsset->IkInfoList.Add(addMMDIkInfo);
 			}

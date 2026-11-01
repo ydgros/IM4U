@@ -7,6 +7,7 @@
 #include "MMD2UE4NameTableRow.h"
 #include "VmdImportUI.h"
 #include "VmdImporter.h"
+#include "MMDExtendAsset.h"
 #include "VmdFactory.generated.h"
 
 // Forward declaration
@@ -47,7 +48,9 @@ protected:
 		UIKRigDefinition* IKRig,
 		UDataTable* ReNameTable,
 		UMMDExtendAsset* mmdExtend,
-		MMD4UE4::VmdMotionInfo* vmdMotionInfo
+		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+		bool bApplyIKCollision = true,
+		bool bCreateRigidBodyPhysics = true
 		);
 
 	UPROPERTY()
@@ -82,7 +85,43 @@ protected:
 		UDataTable* ReNameTable,
 		UIKRigDefinition* IKRig,
 		UMMDExtendAsset* mmdExtend,
-		MMD4UE4::VmdMotionInfo* vmdMotionInfo
+		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+		bool bApplyIKCollision = true,
+		bool bCreateRigidBodyPhysics = true
+		);
+
+	/*用MMDExtendAsset中的IK链对逐帧局部变换做CCD-IK求解（含碰撞角度限制）
+	  未提供IK信息时保留VMD原始姿态；IK开关关键帧存在时逐帧开关IK*/
+	void ApplyIkSolveToBoneTracks(
+		USkeleton* Skeleton,
+		const TArray<FRawAnimSequenceTrack>& InRefTracks,
+		TArray<FRawAnimSequenceTrack>& OutTracks,
+		UIKRigDefinition* IKRig,
+		UMMDExtendAsset* mmdExtend,
+		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
+		int32 NumFrames,
+		const TArray<FTransform>& RefPose,
+		bool bApplyIKCollision = true
+		);
+
+	/*CCD-IK单帧求解（就地修改局部变换）*/
+	void SolveIkForFrame(
+		const FReferenceSkeleton& RefSkeleton,
+		TArray<FMMD_IKInfo> IkInfoList,
+		TArray<FTransform>& LocalTransforms,
+		const TArray<FTransform>& RefPose,
+		int32 Frame,
+		bool bApplyIKCollision
+		);
+
+	/*刚体物理解算：用SkeletalMesh的MMD刚体PhysicsAsset模拟，把结果烘焙回动画曲线（跌倒/发丝等）
+	  没有任何Dynamic刚体时返回false，动画保持不变*/
+	bool BakeRigidBodySimulationToTracks(
+		USkeletalMesh* SkeletalMesh,
+		const FReferenceSkeleton& RefSkeleton,
+		TArray<FRawAnimSequenceTrack>& Tracks,
+		int32 NumFrames,
+		float FrameRate
 		);
 
 	/*从MMD侧的名称检索并取得TableRow的UE侧名称*/

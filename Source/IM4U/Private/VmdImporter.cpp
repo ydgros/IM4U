@@ -170,6 +170,75 @@ namespace MMD4UE4
 					}
 				}
 			}
+
+			// 拡張データ（显示・IK）：旧版VMD没有，读到末尾即视为无扩展数据
+			{
+				//骨骼显示关键帧（16byte：frameNo + visible + ikCount）
+				if (ReadBytes(&readData.vmdExtVisibleCount, sizeof(readData.vmdExtVisibleCount)) &&
+					readData.vmdExtVisibleCount > 0 &&
+					CanReadRecords(readData.vmdExtVisibleCount, 16))
+				{
+					readData.vmdExtVisibleList.AddZeroed(readData.vmdExtVisibleCount);
+					for (int32 i = 0; i < readData.vmdExtVisibleCount; ++i)
+					{
+						VMD_VISIBLE_IK_DATA* visiblePtr = &readData.vmdExtVisibleList[i];
+						if (!ReadBytes(&visiblePtr->frameNo, sizeof(int32) + sizeof(uint8)))
+						{
+							return true;
+						}
+						if (!ReadBytes(&visiblePtr->ikCount, sizeof(int32)) ||
+							!CanReadRecords(visiblePtr->ikCount, 21))
+						{
+							return true;
+						}
+						if (visiblePtr->ikCount > 0)
+						{
+							visiblePtr->ikData.AddZeroed(visiblePtr->ikCount);
+							for (int32 ikIndex = 0; ikIndex < visiblePtr->ikCount; ++ikIndex)
+							{
+								VMD_IK_DATA* ikPtr = &visiblePtr->ikData[ikIndex];
+								if (!ReadBytes(&ikPtr->ikBoneName[0], sizeof(ikPtr->ikBoneName)) ||
+									!ReadBytes(&ikPtr->ikEnabled, sizeof(ikPtr->ikEnabled)))
+								{
+									return true;
+								}
+							}
+						}
+					}
+				}
+
+				//IK开关关键帧（9byte：frameNo + ikCount）
+				if (ReadBytes(&readData.vmdExtIKCount, sizeof(readData.vmdExtIKCount)) &&
+					readData.vmdExtIKCount > 0 &&
+					CanReadRecords(readData.vmdExtIKCount, 9))
+				{
+					readData.vmdExtIKList.AddZeroed(readData.vmdExtIKCount);
+					for (int32 i = 0; i < readData.vmdExtIKCount; ++i)
+					{
+						VMD_VISIBLE_IK_DATA* ikKeyPtr = &readData.vmdExtIKList[i];
+						if (!ReadBytes(&ikKeyPtr->frameNo, sizeof(int32)) ||
+							!ReadBytes(&ikKeyPtr->ikCount, sizeof(int32)) ||
+							!CanReadRecords(ikKeyPtr->ikCount, 21))
+						{
+							return true;
+						}
+						ikKeyPtr->visible = 1;
+						if (ikKeyPtr->ikCount > 0)
+						{
+							ikKeyPtr->ikData.AddZeroed(ikKeyPtr->ikCount);
+							for (int32 ikIndex = 0; ikIndex < ikKeyPtr->ikCount; ++ikIndex)
+							{
+								VMD_IK_DATA* ikPtr = &ikKeyPtr->ikData[ikIndex];
+								if (!ReadBytes(&ikPtr->ikBoneName[0], sizeof(ikPtr->ikBoneName)) ||
+									!ReadBytes(&ikPtr->ikEnabled, sizeof(ikPtr->ikEnabled)))
+								{
+									return true;
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 		if (!ConvertVMDFromReadData(&readData))
@@ -467,9 +536,123 @@ namespace MMD4UE4
 			keyCameraList = tempKeyCamList;
 		}
 
+		// 显示・IK 扩展数据：按 IK 骨骼收集开关关键帧
+		bHasVisibleIKExtension = readData->vmdExtIKList.Num() > 0 || readData->vmdExtVisibleList.Num() > 0;
+		keyIkList.Reset();
+		bAllIkEnabled = true;
+
+		auto AddVisibilityKeys = [](TArray<VmdIkTrackList>& OutList, const TArray<VMD_VISIBLE_IK_DATA>& InList)
+		{
+			for (int32 i = 0; i < InList.Num(); ++i)
+			{
+				const VMD_VISIBLE_IK_DATA& visibleKey = InList[i];
+				for (int32 ikIndex = 0; ikIndex < visibleKey.ikData.Num(); ++ikIndex)
+				{
+					const VMD_IK_DATA& ikData = visibleKey.ikData[ikIndex];
+					const FString ikBoneName = ConvertMMDSJISToFString(
+						reinterpret_cast<uint8*>(const_cast<char*>(ikData.ikBoneName)),
+						sizeof(ikData.ikBoneName));
+					const FName ikBoneFName(*ikBoneName);
+					if (ikBoneName.IsEmpty() || ikBoneFName.IsNone())
+					{
+						continue;
+					}
+
+					int32 trackIndex = INDEX_NONE;
+					for (int32 trackLoop = 0; trackLoop < OutList.Num(); ++trackLoop)
+					{
+						if (OutList[trackLoop].TrackName == ikBoneName)
+						{
+							trackIndex = trackLoop;
+							break;
+						}
+					}
+					if (trackIndex == INDEX_NONE)
+					{
+						trackIndex = OutList.Add(VmdIkTrackList());
+						OutList[trackIndex].TrackName = ikBoneName;
+					}
+
+					VmdIkVisibilityKey newKey;
+					newKey.Frame = static_cast<uint32>(FMath::Max(visibleKey.frameNo, 0));
+					newKey.IKBoneName = ikBoneFName;
+					newKey.bEnabled = ikData.ikEnabled != 0;
+					const int32 preKeyCount = OutList[trackIndex].keyList.Num();
+					const int32 newKeyIndex = OutList[trackIndex].keyList.Add(newKey);
+
+					int32 insertPos = 0;
+					while (insertPos < preKeyCount &&
+						OutList[trackIndex].keyList[OutList[trackIndex].sortIndexList[insertPos]].Frame <= newKey.Frame)
+					{
+						++insertPos;
+					}
+					OutList[trackIndex].sortIndexList.Insert(newKeyIndex, insertPos);
+				}
+			}
+		};
+
+		AddVisibilityKeys(keyIkList, readData->vmdExtIKList);
+
+		for (int32 trackIndex = 0; trackIndex < keyIkList.Num(); ++trackIndex)
+		{
+			const VmdIkTrackList& ikTrack = keyIkList[trackIndex];
+			for (int32 keyIndex = 0; keyIndex < ikTrack.keyList.Num(); ++keyIndex)
+			{
+				if (!ikTrack.keyList[keyIndex].bEnabled)
+				{
+					bAllIkEnabled = false;
+					break;
+				}
+			}
+			if (!bAllIkEnabled)
+			{
+				break;
+			}
+		}
+
 		// end phase
 		maxFrame++;			//min 1frame ?
 		return true;
+	}
+
+	bool VmdMotionInfo::GetIkEnabledAtFrame(
+		FName IKBoneName,
+		uint32 Frame,
+		bool bDefault) const
+	{
+		if (IKBoneName.IsNone())
+		{
+			return bDefault;
+		}
+
+		const FString ikBoneNameString = IKBoneName.ToString();
+		for (int32 trackIndex = 0; trackIndex < keyIkList.Num(); ++trackIndex)
+		{
+			const VmdIkTrackList& ikTrack = keyIkList[trackIndex];
+			if (ikTrack.TrackName != ikBoneNameString)
+			{
+				continue;
+			}
+
+			bool bEnabled = bDefault;
+			bool bFound = false;
+			for (int32 sortIndex = 0; sortIndex < ikTrack.sortIndexList.Num(); ++sortIndex)
+			{
+				const int32 keyIndex = ikTrack.sortIndexList[sortIndex];
+				if (!ikTrack.keyList.IsValidIndex(keyIndex))
+				{
+					continue;
+				}
+				if (ikTrack.keyList[keyIndex].Frame > Frame)
+				{
+					break;
+				}
+				bEnabled = ikTrack.keyList[keyIndex].bEnabled;
+				bFound = true;
+			}
+			return bFound ? bEnabled : bDefault;
+		}
+		return bDefault;
 	}
 
 	//如果在指定列表中有相应的Frame名称，则返回该索引值。异常值=-1。
