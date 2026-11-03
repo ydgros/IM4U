@@ -1,15 +1,15 @@
-﻿# IMPORT MMD for UE5.7
+﻿# 克隆命令，建议使用Git浅克隆，跳过历史提交记录
+```bash
+git clone --depth 1 -b IM4U_dev https://github.com/ydgros/IM4U.git IM4U_dev
+```
+
+# IMPORT MMD for UE5.8
  - for the UE5 main branch.
  - import PMX/VMD to UE5
  - Fixed material importing
  - Fixed morph importing
  - Fixed vmd importing slow problem
  - Generate rigid body based on pmx physics data
-
-# 建议使用Git浅克隆，跳过历史提交记录
-```bash
-git clone --depth 1
-```
 
 # ORIGINAL README
 
