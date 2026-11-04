@@ -1,0 +1,179 @@
+
+# Download（下载）
+
+https://github.com/ydgros/IM4U 
+
+# 来源
+## 存储库
+初始版本 https://github.com/bm9/IM4U 
+4.10.4-4.16.1 https://github.com/bm9/UnrealEngine_IM4UPlugin  
+4.20.1 https://github.com/goopymoon/UnrealEngine_IM4UPlugin 
+4.24.3 https://github.com/yjlian415/IM4U 
+4.25.1 https://github.com/lionelqi/IM4U 
+4.25.1 https://github.com/50c1a1-deadc0de/IM4U  
+4.26.2 https://github.com/yotaken/IM4U 
+4.26.2 https://github.com/TheRoyalDudeness/IM4U 
+4.24.3-5.03 https://github.com/tekifuta/IM4U 
+5.1(不可用) https://github.com/axilesoft/IM-for-UE5 
+5.1-5.2(可用，推荐) https://github.com/NaN-Name-bilbil/IVP5U 
+5.8(可用) https://github.com/rintrint/IVP5U 
+5.8(可用，推荐，hatoghx开发，需安装VRM4U，没源代码) https://github.com/AMAP-N/ue5-mmd-toolkit 
+5.8(可用，推荐，需安装VRM4U和KawaiiPhysics，没源代码) https://github.com/JDui/MMD2Unreal 
+5.8(不能用，hatoghx开发，已停止开发，建议用ue5-mmd-toolkit) https://github.com/hatoghx/AMAP5 
+5.8(不能用，报错) https://github.com/treasureGrove/MMDUETools 
+
+https://github.com/dskjal/OpenMMD 
+
+This software is released under the MIT License
+
+可以直接使用的版本
+4.16.1以及之前版本、4.24.3、5.03
+
+需要重新编译的版本
+4.20.1、4.25.1、4.26.2、4.27.2
+
+# 关联软件
+## 软件
+MikuMikuDance https://sites.google.com/view/vpvp 
+PmxEditor https://kkhk22.seesaa.net/category/14045227-1.html 
+MME https://w.atwiki.jp/vpvpwiki/pages/219.html 
+ray-mmd https://github.com/ray-cast/ray-mmd 
+
+OpenMMD https://github.com/dskjal/OpenMMD 
+
+vpvp https://sites.google.com/view/vpvp/ 
+vpvp@wiki https://www6.atwiki.jp/vpvpwiki/
+
+B碗 https://bowlroll.net 
+
+MikuMikuMoving https://sites.google.com/site/mikumikumoving 
+NexGiMa https://www.nekosmb.com/nexgima 
+NexGiMa https://sites.google.com/view/nexgima/Home 
+MikuMikuPlus https://www.nekosmb.com/mikumikuplus 
+
+## 插件 
+MMDBridge https://mmdbridge.vec4d.xyz 
+MMD4Mecanim http://stereoarts.jp 
+blender_mmd_tools https://github.com/MMD-Blender/blender_mmd_tools 
+MMD4Maya https://github.com/gameboy12615/MMD4Maya 
+C4D_MMD_Tool https://github.com/MikuMikuDance-tool-for-Cinema-4D-team/C4D_MMD_Tool 
+
+# NPR
+## blender
+https://github.com/blender/blender 
+https://github.com/dillongoostudios/goo-engine 
+https://github.com/NaMgAl-Studio/goo-engine-5.2.0 
+NprPort https://github.com/bb-yi/blender 
+https://github.com/Aoikaze0/Blender_goo_build_windows_x64_vc16_Release 
+https://github.com/festivize/Blender-miHoYo-Shaders 
+https://github.com/bnpr/Malt 
+https://github.com/yuki-koyama/btoon 
+https://github.com/kanzwataru/EEVEEToon 
+https://github.com/MMD-Blender/blender_mmd_tools 
+https://github.com/rintrint/blender_mmd_tools 
+https://github.com/ulyssas/mmd_tools_addon_4.1 
+
+## unity
+### 默认3D管线
+https://github.com/festivize/PrimoToon 
+https://github.com/DeJhon-Huang/FernNPR 
+
+### urp
+https://github.com/you-ri/LiliumToonGraph 
+https://github.com/unity3d-jp/UnityChanToonShaderVer2_Project 
+
+### hdrp
+https://github.com/JasonMa0012/JTRP 
+
+## unreal
+### 后处理
+https://github.com/alwei 
+https://github.com/nanpc/UE4-Cartoon-Shader 
+https://github.com/SirCodalot/ShadersExample 
+https://github.com/shop-0761/tToon 
+
+### 插件
+https://ruyo.github.io/VRM4U 
+https://github.com/ruyo/VRM4U 
+https://github.com/ruyo/UnrealEngine_VRM4UPlugin 
+https://github.com/pafuhana1213/KawaiiPhysics 
+https://github.com/SPARK-inc/SPCRJointDynamicsUE4 
+https://github.com/herobbq/UE4_SmoothNormalTool 
+https://github.com/microsoft/vc-ue-extensions 
+https://github.com/EsotericSoftware/spine-runtimes 
+https://github.com/sideeffects/HoudiniEngineForUnreal 
+https://github.com/anasrar/Blender-UE4-Workspace 
+
+### 通过插件修改着色器
+https://ruyo.github.io/VRM4U 
+https://github.com/ruyo/VRM4U 
+https://github.com/Eragon-Brisingr/ToonShader 
+https://github.com/Temaran/UE4ShaderPluginDemo 
+
+### 修改渲染管线
+只修改引擎shader https://github.com/envieous/UnrealEngine-SelShader 
+https://github.com/EscapeEntertainmentTeam/IsekaiFramework 
+https://github.com/JasonMa0012/MooaToon 
+https://github.com/NvRTX/UnrealEngine 
+
+### 卡通材质
+https://www.fab.com/listings/5506e030-5fe4-406d-adaa-0f2201ef3b0a?lang=en
+
+## ffmpeg
+https://github.com/FFmpeg/FFmpeg 
+https://github.com/BtbN/FFmpeg-Builds 
+https://github.com/GyanD/codexffmpeg 
+
+## mingw(gcc)
+https://github.com/brechtsanders/winlibs_mingw 
+https://github.com/skeeto/w64devkit 
+https://github.com/niXman/mingw-builds-binaries 
+
+## llvm(clang)
+https://github.com/llvm/llvm-project 
+https://github.com/mstorsjo/llvm-mingw 
+
+## 7z
+https://github.com/ip7z/7zip 
+https://github.com/mcmilk/7-Zip-zstd 
+https://github.com/peazip/PeaZip 
+
+# 使用方法
+## 直接使用
+
+把IM4U复制到项目Plugins文件夹中，没有Plugins文件夹就新建一个
+文件夹位置\\Plugins
+
+或把IM4U复制到引擎Plugins文件夹中
+引擎安装目录\\UE_5.0\\Engine\\Plugins
+
+## 重新编译插件
+新建一个C++项目
+
+![image](public/image/2023-01-14_11-13-47.png) 
+
+复制IM4U到项目Plugins文件夹中，更新Visual Studio文件
+
+![image](public/image/2023-01-14_11-16-35.png) 
+
+打开.sln文件，直接进行编译，完成后自动打开项目 
+
+![image](public/image/2023-01-14_11-18-37.png)
+
+UE各版本对应的Visual Studio，可通过UEBuildWindows.cs进行查看
+安装目录\\UE_4.21\\Engine\\Source\\Programs\\UnrealBuildTool\\Platform\\Windows
+
+## 使用
+先导入模型 
+
+![image](public/image/2023-01-14_11-34-04.png)
+
+使用MikuMikuMoving烘焙物理 
+
+![image](public/image/2023-01-14_11-36-01.png)
+![image](public/image/2023-01-14_11-36-32.png)
+![image](public/image/2023-01-14_11-37-08.png)
+
+导入动作 
+
+![image](public/image/2023-01-14_11-37-36.png)
