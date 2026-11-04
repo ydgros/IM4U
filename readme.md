@@ -25,6 +25,22 @@ Original repository contributors:
 * alwei https://github.com/alwei
 * demuyan https://github.com/demuyan
 * glm https://github.com/icaven/glm
+* bm9 https://github.com/bm9/IM4U
+* 4.10.4-4.16.1 https://github.com/bm9/UnrealEngine_IM4UPlugin
+* 4.20.1 https://github.com/goopymoon/UnrealEngine_IM4UPlugin
+* 4.24.3 https://github.com/yjlian415/IM4U
+* 4.25.1 https://github.com/lionelqi/IM4U
+* 4.25.1 https://github.com/50c1a1-deadc0de/IM4U
+* 4.26.2 https://github.com/yotaken/IM4U
+* 4.26.2 https://github.com/TheRoyalDudeness/IM4U
+* 4.24.3-5.03 https://github.com/tekifuta/IM4U
+* 5.1-5.2 https://github.com/axilesoft/IM-for-UE5
+* 5.1-5.2 https://github.com/NaN-Name-bilbil/IVP5U
+* 5.8 https://github.com/rintrint/IVP5U
+* 5.8 https://github.com/AMAP-N/ue5-mmd-toolkit
+* 5.8 https://github.com/JDui/MMD2Unreal
+* glm https://github.com/g-truc/glm
+* glmnet https://github.com/cran/glmnet
 
 This software is released under the MIT License.
 
