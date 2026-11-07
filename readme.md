@@ -1,6 +1,6 @@
 ﻿# 克隆命令，建议使用Git浅克隆，跳过历史提交记录
 ```bash
-git clone --depth 1 -b IM4U_dev https://github.com/ydgros/IM4U.git IM4U_dev
+git clone --depth 1 -b master https://github.com/ydgros/IM4U.git IM4U
 ```
 
 # IMPORT MMD for UE5.8
