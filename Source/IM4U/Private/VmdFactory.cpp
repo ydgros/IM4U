@@ -2988,6 +2988,81 @@ bool UVmdFactory::BakeRigidBodyMotion(
 		TEXT("Rigid body collision: %d collidable bone pairs from %d bodies."),
 		CollisionPairCount, SimBones.Num());
 
+	// 骨架世界变换缓存：碰撞形心需要世界空间比较，局部位置无法跨骨骼比较
+	TArray<FTransform> WorldTransforms;
+	WorldTransforms.SetNum(RefSkeleton.GetNum());
+	TArray<int32> CachedWorldFrame;
+	CachedWorldFrame.Init(INDEX_NONE, RefSkeleton.GetNum());
+
+	auto GetBoneLocalTransform = [&Tracks, &RefSkeleton](int32 BoneIndex, int32 Frame) -> FTransform
+	{
+		if (Tracks.IsValidIndex(BoneIndex))
+		{
+			const FRawAnimSequenceTrack& BoneTrack = Tracks[BoneIndex];
+			const FQuat Rotation = BoneTrack.RotKeys.IsValidIndex(Frame)
+				? FQuat(BoneTrack.RotKeys[Frame])
+				: FQuat::Identity;
+			const FVector Translation = BoneTrack.PosKeys.IsValidIndex(Frame)
+				? FVector(BoneTrack.PosKeys[Frame])
+				: FVector::ZeroVector;
+			const FVector Scale = BoneTrack.ScaleKeys.IsValidIndex(Frame)
+				? FVector(BoneTrack.ScaleKeys[Frame])
+				: FVector::OneVector;
+			return FTransform(Rotation, Translation, Scale);
+		}
+		if (RefSkeleton.IsValidIndex(BoneIndex))
+		{
+			return RefSkeleton.GetRefBonePose()[BoneIndex];
+		}
+		return FTransform::Identity;
+	};
+
+	auto ComputeWorldTransform = [&RefSkeleton, &WorldTransforms, &CachedWorldFrame,
+		&GetBoneLocalTransform](int32 BoneIndex, int32 Frame) -> FTransform
+	{
+		if (!RefSkeleton.IsValidIndex(BoneIndex))
+		{
+			return FTransform::Identity;
+		}
+		if (CachedWorldFrame[BoneIndex] == Frame)
+		{
+			return WorldTransforms[BoneIndex];
+		}
+
+		// 递归 lambda 需要显式自引用，这里改为沿父链迭代。
+		// 祖先若已缓存直接复用，未缓存的从最近的已缓存祖先向下累乘。
+		TArray<int32> Chain;
+		int32 Walk = BoneIndex;
+		while (RefSkeleton.IsValidIndex(Walk) && CachedWorldFrame[Walk] != Frame)
+		{
+			Chain.Add(Walk);
+			Walk = RefSkeleton.GetParentIndex(Walk);
+		}
+
+		FTransform Accumulated = RefSkeleton.IsValidIndex(Walk)
+			? WorldTransforms[Walk]
+			: FTransform::Identity;
+		for (int32 ChainIndex = Chain.Num() - 1; ChainIndex >= 0; --ChainIndex)
+		{
+			const int32 ChainBone = Chain[ChainIndex];
+			Accumulated = GetBoneLocalTransform(ChainBone, Frame) * Accumulated;
+			WorldTransforms[ChainBone] = Accumulated;
+			CachedWorldFrame[ChainBone] = Frame;
+		}
+		return WorldTransforms[BoneIndex];
+	};
+
+	auto ComputeBoneWorldPosition = [&ComputeWorldTransform](int32 BoneIndex, int32 Frame) -> FVector
+	{
+		return ComputeWorldTransform(BoneIndex, Frame).GetTranslation();
+	};
+
+	auto ComputeShapeCenter = [&ComputeWorldTransform](
+		int32 BoneIndex, int32 Frame, const FVector& ShapeOffset) -> FVector
+	{
+		return ComputeWorldTransform(BoneIndex, Frame).TransformPosition(ShapeOffset);
+	};
+
 	for (const FSimBone& SimBone : SimBones)
 	{
 		UE_LOG(LogMMD4UE4_VMDFactory, Log,
@@ -3113,7 +3188,6 @@ bool UVmdFactory::BakeRigidBodyMotion(
 		for (int32 Frame = 1; Frame < SimFrameCount; ++Frame)
 		{
 			const FQuat AnimRotation = FQuat(Track.RotKeys[Frame]);
-
 			// 本帧的驱动目标：驱动骨骼的"世界朝向"相对起始朝向的旋转偏差。
 			// 用累积旋转而非局部旋转，因为躯干的旋转往往来自祖先骨骼。
 			// 这是"绝对量"，所以弹簧偏移永远不会无限累积。
@@ -3184,37 +3258,41 @@ bool UVmdFactory::BakeRigidBodyMotion(
 			}
 			PrevDriverTarget = DriverTarget;
 
-			// 结果 = 动画姿势 + 受限后的摆动偏移
+			// 结果 = 受限后的摆动偏移 + 动画姿势
 			// 注意：FQuat::MakeFromEuler / FRotator::MakeFromEuler 的参数是"度"，
 			// SwingOffset 内部按弧度计算，这里必须转成度，否则摆幅会被缩小57倍。
+			// 摆动来自躯干累积朝向（父空间），必须左乘；右乘会把摆动叠加到骨骼自身轴上，
+			// 竖起来的长链骨骼（裙摆/衣袖）会被绕错误轴扭转。
 			const FVector SwingOffsetDegrees = FMath::RadiansToDegrees(SwingOffset);
-			const FQuat SimRotation = AnimRotation * FQuat::MakeFromEuler(SwingOffsetDegrees);
+			const FQuat SimRotation = FQuat::MakeFromEuler(SwingOffsetDegrees) * AnimRotation;
 
 			SimBone.PrevRotation = SimRotation;
 			Track.RotKeys[Frame] = FQuat4f(SimRotation.GetNormalized());
 			++BakedKeyCount;
 
+			// 本骨骼当前帧的旋转刚被改写，世界变换缓存必须失效（祖先不受影响，仍可复用）
+			CachedWorldFrame[SimBone.BoneIndex] = INDEX_NONE;
+
 			// 碰撞：若本刚体与其它刚体的形状重叠，把摆动沿重叠方向反向推回。
 			// 这是位置型软约束——只在真正穿插时生效，不会改变无接触时的摆动。
+			// 注意：形心的计算必须用世界变换。之前直接用 (局部位置 + 刚体偏移) 比较，
+			// 偏移量（如裙摆 X=8.9）远大于相邻骨骼间距，导致相邻裙片永久"重叠"，
+			// 每帧每骨被推回近10次，把衣服转翻（日志 collisionCorrections=204316）。
 			if (CollisionPairs[SimBoneIndex].Num() > 0)
 			{
-				const FVector ThisCenter = FVector(
-					Track.PosKeys[Frame]) + SimBone.ShapeOffset;
+				const FVector ThisCenter = ComputeShapeCenter(
+					SimBone.BoneIndex, Frame, SimBone.ShapeOffset);
 				for (const FCollisionPair& Pair : CollisionPairs[SimBoneIndex])
 				{
-					if (!Tracks.IsValidIndex(Pair.OtherBoneIndex))
-					{
-						continue;
-					}
-					const FRawAnimSequenceTrack& OtherTrack = Tracks[Pair.OtherBoneIndex];
-					if (!OtherTrack.PosKeys.IsValidIndex(Frame) ||
-						!OtherTrack.RotKeys.IsValidIndex(Frame))
-					{
-						continue;
-					}
 					const FSimBone& Other = SimBones[Pair.OtherSimIndex];
-					const FVector OtherCenter = FVector(
-						OtherTrack.PosKeys[Frame]) + Other.ShapeOffset;
+					if (!Tracks.IsValidIndex(Other.BoneIndex) ||
+						!RefSkeleton.IsValidIndex(Other.BoneIndex))
+					{
+						continue;
+					}
+
+					const FVector OtherCenter = ComputeShapeCenter(
+						Other.BoneIndex, Frame, Other.ShapeOffset);
 
 					// 用包围球近似：半径取形状尺寸的最大分量
 					const float ThisRadius = FMath::Max3(
@@ -3239,21 +3317,32 @@ bool UVmdFactory::BakeRigidBodyMotion(
 					const float Overlap = MinDist - Dist;
 					const FVector Normal = Delta / Dist;
 
-					// 以骨骼到形状中心的力臂近似换算角度，避免大骨骼被推爆
-					const float LeverArm = FMath::Max(SimBone.ShapeOffset.Size(), 1.0f);
+					// 力臂：本骨骼到自身形心的世界距离（小于1时取1避免除零放大）
+					const float LeverArm = FMath::Max(
+						FVector(ThisCenter - ComputeBoneWorldPosition(SimBone.BoneIndex, Frame)).Size(),
+						1.0f);
 					const float PushRad = FMath::Clamp(Overlap / LeverArm, 0.0f, MaxSwingRad * 0.5f);
 					if (PushRad <= KINDA_SMALL_NUMBER)
 					{
 						continue;
 					}
 
-					// 把推回量投影到三个欧拉轴，直接修正已写入的旋转
+					// 把推回量投影到三个欧拉轴，修正已写入的旋转。
+					// 摆动/推回都在父空间里作用，必须左乘；右乘会围绕骨骼自身轴旋转，
+					// 竖起来的裙摆/衣袖会被扭过头。
+					// 单帧限幅避免链路自增强把骨骼转翻（日志中出现过 253° 摆幅）。
 					const FVector PushEuler = FVector(
 						Normal.X * PushRad, Normal.Y * PushRad, Normal.Z * PushRad);
+					const float MaxPushRad = MaxSwingRad * 0.25f;
+					const FVector ClampedPush(
+						FMath::Clamp(PushEuler.X, -MaxPushRad, MaxPushRad),
+						FMath::Clamp(PushEuler.Y, -MaxPushRad, MaxPushRad),
+						FMath::Clamp(PushEuler.Z, -MaxPushRad, MaxPushRad));
 					const FQuat CurrentRot = FQuat(Track.RotKeys[Frame]);
-					const FQuat Corrected = CurrentRot *
-						FQuat::MakeFromEuler(FMath::RadiansToDegrees(PushEuler));
+					const FQuat Corrected = FQuat::MakeFromEuler(
+						FMath::RadiansToDegrees(ClampedPush)) * CurrentRot;
 					Track.RotKeys[Frame] = FQuat4f(Corrected.GetNormalized());
+					CachedWorldFrame[SimBone.BoneIndex] = INDEX_NONE;
 					++CollisionCorrectionCount;
 				}
 			}
