@@ -3,6 +3,7 @@
 
 #include "MmdBoneNameUtils.h"
 #include "Engine.h"
+#include "Misc/EngineVersionComparison.h"
 #include "MMDImportHelper.h"
 #include "PmxImportUI.h"
 #include "MMDExtendAsset.h"
@@ -462,6 +463,7 @@ struct PMXImportOptions
 	UMMDExtendAsset* MmdExtendAsset;
 };
 
+
 PMXImportOptions* GetImportOptions(
 	//class FPmxImporter* PmxImporter,
 	const class FPmxImporter* PmxImporter, //UE5.8
@@ -508,8 +510,15 @@ public:
 	@return bool true if get scene info successfully
 	*/
 	bool GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo);
+#endif /* FBX scene helpers (removed in UE5.9 with the FBX SDK) */
 
-
+#if !UE_VERSION_OLDER_THAN(5,9,0)
+	/*
+	 * UE5.9 no longer ships the FBX SDK headers, so the helpers inherited from the engine FBX importer
+	 * (scene management and geometry verification) are unavailable. The MMD importer keeps its own
+	 * PMX/VMD parsing and never drives them; declare nothing here and drop the definitions below.
+	 */
+#else
 	/*
 	Initialize Fbx file for import.
 
@@ -875,7 +884,7 @@ private:
 public:
 	/*current Fbx scene we are importing. Make sure to release it after import*/
 	FbxScene* Scene;
-#endif
+#endif /* UE5.9: FBX SDK object helpers removed from the engine */
 public:
 	TUniquePtr<PMXImportOptions> ImportOptions;
 protected:
@@ -1004,7 +1013,9 @@ protected:
 	@param bDisableMissingBindPoseWarning
 	@param bUseTime0AsRefPose	in/out - Use Time 0 as Ref Pose
 	*/
+#if 0 //UE5.9: signature based on removed FBX SDK types
 	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
+#endif
 
 	/*
 	Skins the control points of the given mesh or shape using either the default pose for skinning or the first frame of the
@@ -1035,9 +1046,11 @@ protected:
 	@param bIsRoot if the Fbx skeleton node is root skeleton
 	@param Scale scale factor for this skeleton node
 	*/
+#if 0 //UE5.9: FbxTime/FbxVector4 removed from UE FBX API
 	bool FillAnimSequenceByKey(FbxNode* Node, UAnimSequence* AnimSequence, const char* TakeName, FbxTime& Start, FbxTime& End, bool bIsRoot, FbxVector4 Scale);
 	/*bool CreateMatineeSkeletalAnimation(AExSkelMeshActor* Actor, UAnimSet* AnimSet);
 	bool CreateMatineeAnimation(FbxNode* Node, AActor* Actor, bool bInvertOrient, bool bAddDirectorTrack);*/
+#endif
 
 	//material
 	/*
@@ -1242,7 +1255,9 @@ protected:
 
 public:
 	/* Import and set up animation related data from mesh */
+#if 0 //UE5.9: signature based on removed FBX SDK types
 	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject* InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString& Filename);
+#endif
 
 	/* error message handler */
 	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error, FName FbxErrorName);

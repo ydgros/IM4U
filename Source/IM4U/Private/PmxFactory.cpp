@@ -913,21 +913,24 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 		//const bool bShouldComputeNormals = true/*!ImportOptions->ShouldImportNormals()*/ || !SkelMeshImportDataPtr->bHasNormals;
 		//const bool bShouldComputeTangents = true/*!ImportOptions->ShouldImportTangents()*/ || !SkelMeshImportDataPtr->bHasTangents;
 
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-
 		TArray<FText> WarningMessages;
 		TArray<FName> WarningNames;
 		// Create actual rendering data.
-
-		if (!MeshUtilities.BuildSkeletalMesh(
-			ImportedResource->LODModels[0],"MMDMeshName",
+		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+		const bool bBuildSkeletalMeshSucceeded = MeshUtilities.BuildSkeletalMesh(
+			LODModel,
+			TEXT("MMDMeshName"),
 			SkeletalMesh->GetRefSkeleton(),
 			LODInfluences,
 			LODWedges,
 			LODFaces,
 			LODPoints,
-			LODPointToRawMap)
-			)
+			LODPointToRawMap,
+			IMeshUtilities::MeshBuildOptions(),
+			&WarningMessages,
+			&WarningNames);
+
+		if (!bBuildSkeletalMeshSucceeded)
 		{
 			if (WarningNames.Num() == WarningMessages.Num())
 			{
@@ -959,6 +962,7 @@ USkeletalMesh* UPmxFactory::ImportSkeletalMesh(
 		for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 		{
 			SkeletalMesh->GetLODInfo(0)->LODMaterialMap.Add(SectionIndex);
+			LODModel.Sections[SectionIndex].MaterialIndex = SectionIndex;
 		}
 
 		if (ExistSkelMeshDataPtr)

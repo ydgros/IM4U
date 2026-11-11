@@ -5,6 +5,9 @@ UMMDMeshImportData::UMMDMeshImportData(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer)
 {
 	NormalImportMethod = MMDNIM_ComputeNormals;
+	ImportTranslation = FVector::ZeroVector;
+	ImportRotation = FRotator::ZeroRotator;
+	ImportUniformScale = 1.0f;
 }
 
 bool UMMDMeshImportData::CanEditChange(const FProperty* InProperty) const

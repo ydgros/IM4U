@@ -10,7 +10,7 @@ Main implementation of FFbxImporter : import FBX data to Unreal
 #include "MMDStaticMeshImportData.h"
 #include "MainFrame.h"
 #include "EngineAnalytics.h"
-#include "Factories/FbxStaticMeshImportData.h"
+#include "Misc/EngineVersionComparison.h"
 
 //DEFINE_LOG_CATEGORY(LogPmx);
 

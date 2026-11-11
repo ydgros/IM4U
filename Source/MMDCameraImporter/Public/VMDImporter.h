@@ -6,6 +6,9 @@
 #include "MMDUserImportVMDSettings.h"
 #include "Channels/MovieSceneDoubleChannel.h"
 #include "Tracks/MovieSceneCameraCutTrack.h"
+// UE5.9: float track/section were removed; UE double movie scene types live in MovieSceneTracks
+#include "Tracks/MovieSceneDoubleTrack.h"
+#include "Sections/MovieSceneDoubleSection.h"
 
 // TODO: little endian check
 
@@ -204,7 +207,7 @@ private:
 
 	static UMovieSceneCameraCutTrack* GetCameraCutTrack(UMovieScene* InMovieScene);
 	
-	// MovieSceneChannel must be FMovieSceneDoubleChannel or FMovieSceneFloatChannel
+	// MovieSceneChannel must be FMovieSceneDoubleChannel
 	template<typename MovieSceneChannel>
 	static void ImportCameraSingleChannel(
 		const TArray<FVmdObject::FCameraKeyFrame>& CameraKeyFrames,

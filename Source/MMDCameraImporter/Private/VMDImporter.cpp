@@ -9,9 +9,9 @@
 #include "MovieSceneToolHelpers.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Misc/ScopedSlowTask.h"
-#include "Sections/MovieSceneFloatSection.h"
+#include "Sections/MovieSceneDoubleSection.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
-#include "Tracks/MovieSceneFloatTrack.h"
+#include "Tracks/MovieSceneDoubleTrack.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "FMmdCameraImporterModule"
@@ -527,35 +527,36 @@ bool FVmdImporter::ImportVmdCameraFocalLengthProperty(
 
 	const FName TrackName = TEXT("CurrentFocalLength");
 
-	TArray<FMovieSceneFloatChannel*> Channels;
+	TArray<FMovieSceneDoubleChannel*> Channels;
 	Channels.Reserve(ObjectBindings.Num());
 
 	for (FGuid ObjectBinding : ObjectBindings)
 	{
-		UMovieSceneFloatTrack* FloatTrack = MovieScene->FindTrack<UMovieSceneFloatTrack>(ObjectBinding, TrackName);
-		if (FloatTrack == nullptr)
+		// UE5.9: float movie scene track/section was removed, use the double variant
+		UMovieSceneDoubleTrack* DoubleTrack = MovieScene->FindTrack<UMovieSceneDoubleTrack>(ObjectBinding, TrackName);
+		if (DoubleTrack == nullptr)
 		{
 			return false;
 		}
 
-		FloatTrack->Modify();
-		FloatTrack->RemoveAllAnimationData();
+		DoubleTrack->Modify();
+		DoubleTrack->RemoveAllAnimationData();
 
 		bool bSectionAdded = false;
-		UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>(FloatTrack->FindOrAddSection(0, bSectionAdded));
-		if (!FloatSection)
+		UMovieSceneDoubleSection* DoubleSection = Cast<UMovieSceneDoubleSection>(DoubleTrack->FindOrAddSection(0, bSectionAdded));
+		if (!DoubleSection)
 		{
 			return false;
 		}
 
-		FloatSection->Modify();
+		DoubleSection->Modify();
 
 		if (bSectionAdded)
 		{
-			FloatSection->SetRange(TRange<FFrameNumber>::All());
+			DoubleSection->SetRange(TRange<FFrameNumber>::All());
 		}
 
-		FMovieSceneFloatChannel* Channel = FloatSection->GetChannelProxy().GetChannel<FMovieSceneFloatChannel>(0);
+		FMovieSceneDoubleChannel* Channel = DoubleSection->GetChannelProxy().GetChannel<FMovieSceneDoubleChannel>(0);
 		Channels.Add(Channel);
 	}
 
@@ -602,34 +603,35 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 
 	const FName TrackName = TEXT("PostProcessSettings.MotionBlurAmount");
 
-	TArray<FMovieSceneFloatChannel*> Channels;
+	TArray<FMovieSceneDoubleChannel*> Channels;
 	Channels.Reserve(ObjectBindings.Num());
 
 	for (FGuid ObjectBinding : ObjectBindings)
 	{
-		UMovieSceneFloatTrack* FloatTrack = MovieScene->FindTrack<UMovieSceneFloatTrack>(ObjectBinding, TrackName);
-		if (FloatTrack == nullptr)
+		// UE5.9: float movie scene track/section was removed, use the double variant
+		UMovieSceneDoubleTrack* DoubleTrack = MovieScene->FindTrack<UMovieSceneDoubleTrack>(ObjectBinding, TrackName);
+		if (DoubleTrack == nullptr)
 		{
 			MovieScene->Modify();
-			FloatTrack = MovieScene->AddTrack<UMovieSceneFloatTrack>(ObjectBinding);
-			FloatTrack->SetPropertyNameAndPath("MotionBlurAmount", "PostProcessSettings.MotionBlurAmount");
+			DoubleTrack = MovieScene->AddTrack<UMovieSceneDoubleTrack>(ObjectBinding);
+			DoubleTrack->SetPropertyNameAndPath("MotionBlurAmount", "PostProcessSettings.MotionBlurAmount");
 		}
 
-		FloatTrack->Modify();
-		FloatTrack->RemoveAllAnimationData();
+		DoubleTrack->Modify();
+		DoubleTrack->RemoveAllAnimationData();
 
 		bool bSectionAdded = false;
-		UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>(FloatTrack->FindOrAddSection(0, bSectionAdded));
-		if (!FloatSection)
+		UMovieSceneDoubleSection* DoubleSection = Cast<UMovieSceneDoubleSection>(DoubleTrack->FindOrAddSection(0, bSectionAdded));
+		if (!DoubleSection)
 		{
 			return false;
 		}
 
-		FloatSection->Modify();
+		DoubleSection->Modify();
 
 		if (bSectionAdded)
 		{
-			FloatSection->SetRange(TRange<FFrameNumber>::All());
+			DoubleSection->SetRange(TRange<FFrameNumber>::All());
 		}
 
 		if (CameraKeyFrames.Num() == 0)
@@ -637,7 +639,7 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 			return true;
 		}
 
-		FMovieSceneFloatChannel* Channel = FloatSection->GetChannelProxy().GetChannel<FMovieSceneFloatChannel>(0);
+		FMovieSceneDoubleChannel* Channel = DoubleSection->GetChannelProxy().GetChannel<FMovieSceneDoubleChannel>(0);
 		Channels.Add(Channel);
 	}
 
@@ -645,12 +647,12 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 	const FFrameRate FrameRate = MovieScene->GetTickResolution();
 	const FFrameNumber OneSampleFrame = (FrameRate / SampleRate).AsFrameNumber(1);
 	const int32 FrameRatio = static_cast<int32>(FrameRate.AsDecimal() / 30.f);
-	const float MotionBlurAmount = ImportVmdSettings->MotionBlurAmount;
+	const double MotionBlurAmount = ImportVmdSettings->MotionBlurAmount;
 	const ECameraCutImportType CameraCutImportType = ImportVmdSettings->CameraCutImportType;
 
-	for (FMovieSceneFloatChannel* MovieSceneFloatChannel : Channels)
+	for (FMovieSceneDoubleChannel* MovieSceneDoubleChannel : Channels)
 	{
-		MovieSceneFloatChannel->SetDefault(MotionBlurAmount);
+		MovieSceneDoubleChannel->SetDefault(MotionBlurAmount);
 	}
 
 	TArray<TRange<uint32>> CameraCutRanges;
@@ -687,14 +689,14 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 		}
 	}
 
-	TArray<TPair<FFrameNumber, FMovieSceneFloatValue>> Keys;
+	TArray<TPair<FFrameNumber, FMovieSceneDoubleValue>> Keys;
 
 	if (0 < CameraCutRanges.Num() && CameraCutRanges[0].GetLowerBoundValue() != 0)
 	{
-		FMovieSceneFloatValue MovieSceneFloatValue;
-		MovieSceneFloatValue.Value = MotionBlurAmount;
-		MovieSceneFloatValue.InterpMode = RCIM_Constant;
-		Keys.Add({ 0, MovieSceneFloatValue });
+		FMovieSceneDoubleValue MovieSceneDoubleValue;
+		MovieSceneDoubleValue.Value = MotionBlurAmount;
+		MovieSceneDoubleValue.InterpMode = RCIM_Constant;
+		Keys.Add({ 0, MovieSceneDoubleValue });
 	}
 
 	for (TRange<uint32>& CameraCutRange : CameraCutRanges)
@@ -705,40 +707,40 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 
 		if (CameraCutImportType == ECameraCutImportType::ImportAsIs)
 		{
-			FMovieSceneFloatValue MovieSceneFloatValue;
-			MovieSceneFloatValue.Value = 0.0f;
-			MovieSceneFloatValue.InterpMode = RCIM_Constant;
-			Keys.Add({ static_cast<int32>(LowerBound) * FrameRatio, MovieSceneFloatValue });
+			FMovieSceneDoubleValue MovieSceneDoubleValue;
+			MovieSceneDoubleValue.Value = 0.0;
+			MovieSceneDoubleValue.InterpMode = RCIM_Constant;
+			Keys.Add({ static_cast<int32>(LowerBound) * FrameRatio, MovieSceneDoubleValue });
 		}
 		else
 		{
-			FMovieSceneFloatValue MovieSceneFloatValue;
-			MovieSceneFloatValue.Value = 0.0f;
-			MovieSceneFloatValue.InterpMode = RCIM_Constant;
-			Keys.Add({ (static_cast<int32>(LowerBound + 1) * FrameRatio) - OneSampleFrame, MovieSceneFloatValue });
+			FMovieSceneDoubleValue MovieSceneDoubleValue;
+			MovieSceneDoubleValue.Value = 0.0;
+			MovieSceneDoubleValue.InterpMode = RCIM_Constant;
+			Keys.Add({ (static_cast<int32>(LowerBound + 1) * FrameRatio) - OneSampleFrame, MovieSceneDoubleValue });
 		}
 
 		{
-			FMovieSceneFloatValue MovieSceneFloatValue;
-			MovieSceneFloatValue.Value = MotionBlurAmount;
-			MovieSceneFloatValue.InterpMode = RCIM_Constant;
-			Keys.Add({ (static_cast<int32>(UpperBound) * FrameRatio) + OneSampleFrame, MovieSceneFloatValue });
+			FMovieSceneDoubleValue MovieSceneDoubleValue;
+			MovieSceneDoubleValue.Value = MotionBlurAmount;
+			MovieSceneDoubleValue.InterpMode = RCIM_Constant;
+			Keys.Add({ (static_cast<int32>(UpperBound) * FrameRatio) + OneSampleFrame, MovieSceneDoubleValue });
 		}
 	}
 
 	PTRINT CurrentCameraCutIndex = 0;
 	for (PTRINT i = 0; i < Keys.Num(); ++i)
 	{
-		const TPair<FFrameNumber, FMovieSceneFloatValue>& CurrentKey = Keys[i];
+		const TPair<FFrameNumber, FMovieSceneDoubleValue>& CurrentKey = Keys[i];
 
 		while(static_cast<int32>(InCameraCuts[CurrentCameraCutIndex].GetUpperBoundValue() * FrameRatio) <= CurrentKey.Key)
 		{
 			CurrentCameraCutIndex += 1;
 			
-			TMovieSceneChannelData<FMovieSceneFloatValue> CurrentChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
+			TMovieSceneChannelData<FMovieSceneDoubleValue> CurrentChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
 			const TRange<uint32>& PreviousCameraCut = InCameraCuts[CurrentCameraCutIndex - 1];
 
-			const TPair<FFrameNumber, FMovieSceneFloatValue>& PreviousKey = 0 <= i - 1
+			const TPair<FFrameNumber, FMovieSceneDoubleValue>& PreviousKey = 0 <= i - 1
 				? Keys[i - 1]
 				: Keys[0];
 
@@ -763,16 +765,16 @@ bool FVmdImporter::CreateVmdCameraMotionBlurProperty(
 			break;
 		}
 
-		TMovieSceneChannelData<FMovieSceneFloatValue> ChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
+		TMovieSceneChannelData<FMovieSceneDoubleValue> ChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
 		ChannelData.AddKey(CurrentKey.Key, CurrentKey.Value);
 	}
 
-	const TPair<FFrameNumber, FMovieSceneFloatValue>& LastKey = Keys.Last();
+	const TPair<FFrameNumber, FMovieSceneDoubleValue>& LastKey = Keys.Last();
 
 	for (PTRINT i = 0; i < Channels.Num() - 1; ++i)
 	{
 		CurrentCameraCutIndex += 1;
-		TMovieSceneChannelData<FMovieSceneFloatValue> ChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
+		TMovieSceneChannelData<FMovieSceneDoubleValue> ChannelData = Channels[CurrentCameraCutIndex % Channels.Num()]->GetData();
 		ChannelData.AddKey(LastKey.Key, LastKey.Value);
 	}
 

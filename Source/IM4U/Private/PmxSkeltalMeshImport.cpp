@@ -613,7 +613,7 @@ bool UPmxFactory::FillSkelMeshImporterFromFbx(
 			TmpWedges[VertexIndex].UVs[0].Y = tempUV.Y;
 			FMemory::Memcpy(ImportData.Wedges[w].UVs,
 				TmpWedges[VertexIndex].UVs,
-				sizeof(FVector2D) * MAX_TEXCOORDS);
+				sizeof(FVector2f) * MAX_TEXCOORDS);
 			Triangle.WedgeIndex[VertexIndex] = w;
 		}
 	}
@@ -844,7 +844,6 @@ public:
 		, LODIndex(InLODIndex)
 		, bKeepOverlappingVertices(bInKeepOverlappingVertices)
 	{
-		MeshUtilities = &FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	}
 
 	void DoWork()
@@ -858,16 +857,24 @@ public:
 
 		ImportData.Empty();
 
-		MeshUtilities->BuildSkeletalMesh(
-			TempSkeletalMesh->GetImportedModel()->LODModels[0], "MMDSKMS",
+		TArray<FText> WarningMessages;
+		TArray<FName> WarningNames;
+		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+		MeshUtilities.BuildSkeletalMesh(
+			TempSkeletalMesh->GetImportedModel()->LODModels[0],
+			TEXT("MMDSKMS"),
 			TempSkeletalMesh->GetRefSkeleton(),
 			LODInfluences,
 			LODWedges,
 			LODFaces,
 			LODPoints,
-			LODPointToRawMap
-		);
+			LODPointToRawMap,
+			IMeshUtilities::MeshBuildOptions(),
+			&WarningMessages,
+			&WarningNames);
 
+		// Morph deltas are written against the LOD vertex indices of the base mesh.
+		ImportData.Points = MoveTemp(LODPoints);
 	}
 
 	static const TCHAR* Name()
@@ -886,7 +893,6 @@ public:
 private:
 	USkeletalMesh* TempSkeletalMesh;
 	FSkeletalMeshImportData ImportData;
-	IMeshUtilities* MeshUtilities;
 	int32 LODIndex;
 	bool bKeepOverlappingVertices;
 };

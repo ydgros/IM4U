@@ -2,7 +2,6 @@
 #include "IM4U.h"
 #include "PmxImporter.h"
 #include "VmdImporter.h"
-#include "Factories/FbxAssetImportData.h"
 
 class FIM4U : public IIM4U //UE5.8
 {
@@ -13,11 +12,6 @@ public://基class IModuleInterface中函数 FIM4U::StartupModule 的可见性从
 };
 
 IMPLEMENT_MODULE( FIM4U, IM4U )
-
-void UFbxAssetImportData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}//实现 已声明 UFbxAssetImportData::PostEditChangeProperty PostEditChangeProperty
 
 void FIM4U::StartupModule()
 {

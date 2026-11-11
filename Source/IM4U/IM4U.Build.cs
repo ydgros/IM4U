@@ -89,7 +89,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"ApplicationCore",
 					"MeshDescription",
-					"MeshUtilities"
+					//"MeshUtilities"
 					// ... add private dependencies that you statically link with here ...
 				}
 				);
