@@ -49,7 +49,8 @@ protected:
 		UDataTable* ReNameTable,
 		UMMDExtendAsset* mmdExtend,
 		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-		bool bApplyIKCollision = true
+		bool bApplyIKCollision = true,
+		bool bBakeRigidBodyMotion = true
 		);
 
 	UPROPERTY()
@@ -85,7 +86,8 @@ protected:
 		UIKRigDefinition* IKRig,
 		UMMDExtendAsset* mmdExtend,
 		MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-		bool bApplyIKCollision = true
+		bool bApplyIKCollision = true,
+		bool bBakeRigidBodyMotion = true
 		);
 
 	/*用MMDExtendAsset中的IK链对逐帧局部变换做CCD-IK求解（含碰撞角度限制）

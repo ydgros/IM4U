@@ -55,6 +55,11 @@ class UVmdImportUI : public UObject
 	UPROPERTY(EditAnywhere, Category = IK, meta = (ToolTip = "Apply MMD angle limits (collision) to IK link bones during solving."))
 		bool bApplyIKCollision = true;
 
+	/* 导入时把MMD刚体演算结果烘焙进动画（裙摆/头发/胸部摆动）。
+	   若播放时依赖引擎 Physics Asset 实时物理（Chaos），请关闭：两者叠加会导致穿模、抽搐。 */
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (ToolTip = "Bake MMD rigid body swing into the animation. Disable when the Skeletal Mesh Physics Asset simulates in engine, otherwise both fight each other (clipping/jitter)."))
+		bool bBakeRigidBodyMotion = true;
+
 	/* True to import animations from the FBX File */
 	//UPROPERTY(EditAnywhere, config, Category = Animation, meta = (ImportType = "SkeletalMesh|Animation"))
 	UPROPERTY()

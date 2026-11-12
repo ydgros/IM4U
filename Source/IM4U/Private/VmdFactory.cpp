@@ -461,7 +461,8 @@ if (false)
 						ImportUI->MMD2UE4NameTableRow,
 						ImportUI->bSolveIK ? ImportUI->MmdExtendAsset : nullptr,
 						&vmdMotionInfo,
-						ImportUI->bApplyIKCollision
+						ImportUI->bApplyIKCollision,
+						ImportUI->bBakeRigidBodyMotion
 					);
 				}
 				else
@@ -515,7 +516,8 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	UDataTable* ReNameTable,
 	UMMDExtendAsset* mmdExtend,
 	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-	bool bApplyIKCollision
+	bool bApplyIKCollision,
+	bool bBakeRigidBodyMotion
 )
 {
 	UAnimSequence* LastCreatedAnim = nullptr;
@@ -614,7 +616,7 @@ UAnimSequence* UVmdFactory::ImportAnimations(
 	{
 		bool importSuccessFlag = true;
 		/*vmd animation regist*/
-		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo, bApplyIKCollision))
+		if (!ImportVMDToAnimSequence(LastCreatedAnim, Skeleton, SkeletalMesh, ReNameTable, IKRig, mmdExtend, vmdMotionInfo, bApplyIKCollision, bBakeRigidBodyMotion))
 		{
 			//TBD::ERR case
 			check(false);
@@ -973,7 +975,8 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 	UIKRigDefinition* IKRig,
 	UMMDExtendAsset* mmdExtend,
 	MMD4UE4::VmdMotionInfo* vmdMotionInfo,
-	bool bApplyIKCollision
+	bool bApplyIKCollision,
+	bool bBakeRigidBodyMotion
 )
 {
 	if (!DestSeq || !Skeleton || !vmdMotionInfo)
@@ -1459,16 +1462,25 @@ bool UVmdFactory::ImportVMDToAnimSequence(
 		RefBonePose,
 		bApplyIKCollision);
 
-	/* 刚体物理烘焙：把MMD刚体演算结果写入轨道，播放动画即带摆动 */
+	/* 刚体物理烘焙：把MMD刚体演算结果写入轨道，播放动画即带摆动。
+	   若播放时由引擎 Physics Asset 实时模拟，关闭烘焙避免两套解算互相打架。 */
 	if (IsValid(SkeletalMesh))
 	{
-		BakeRigidBodyMotion(
-			SkeletalMesh,
-			Skeleton->GetReferenceSkeleton(),
-			TempRawTrackList,
-			NumSampleFrames,
-			ResampleRate,
-			mmdExtend);
+		if (bBakeRigidBodyMotion)
+		{
+			BakeRigidBodyMotion(
+				SkeletalMesh,
+				Skeleton->GetReferenceSkeleton(),
+				TempRawTrackList,
+				NumSampleFrames,
+				ResampleRate,
+				mmdExtend);
+		}
+		else
+		{
+			UE_LOG(LogMMD4UE4_VMDFactory, Log,
+				TEXT("Rigid body bake skipped by import option (engine physics simulation is expected)."));
+		}
 	}
 
 	/* AddTrack */
